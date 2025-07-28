@@ -1,6 +1,8 @@
+from typing import Dict, Any
 from pydantic import BaseModel
 from typing import Optional
 from enum import Enum
+from datetime import datetime
 
 
 class ChangeType(str, Enum):
@@ -38,3 +40,29 @@ class CommitAnalysis(BaseModel):
     total_lines_added: int
     total_lines_removed: int
     branch_name: str
+
+    def to_ai_context(self) -> Dict[str, Any]:
+        """Export structured data for AI processing"""
+        return {
+            "summary": {
+                "files_changed": self.total_files,
+                "lines_added": self.total_lines_added,
+                "lines_removed": self.total_lines_removed,
+            },
+            "files": [
+                {
+                    "path": file_diff.new_path,
+                    "type": file_diff.file_type.value,
+                    "change_type": file_diff.change_type.value,
+                    "lines_added": file_diff.lines_added,
+                    "lines_removed": file_diff.lines_removed,
+                    "is_binary": file_diff.is_binary,
+                }
+                for file_diff in self.files
+            ],
+            "context": {
+                # TODO: Add more context about the repository
+                "repository_context": f"Git repository analysis for branch {self.branch_name}",
+                "timestamp": datetime.now().isoformat(),
+            },
+        }
