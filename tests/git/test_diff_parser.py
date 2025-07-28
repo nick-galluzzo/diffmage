@@ -1,4 +1,5 @@
 from diffmage.git.diff_parser import GitDiffParser
+from diffmage.core.models import ChangeType
 from diffmage.core.models import FileType
 
 
@@ -101,9 +102,144 @@ def test_detect_file_type_edge_cases():
     # This should be classified as source code, not test code
     assert parser._detect_file_type("src/latest.py") == FileType.SOURCE_CODE
     assert parser._detect_file_type("src/contest.js") == FileType.SOURCE_CODE
-
-    # File in __tests__ directory
     assert parser._detect_file_type("src/__tests__/main.py") == FileType.TEST_CODE
-
-    # File with multiple dots
     assert parser._detect_file_type("src/file.test.py") == FileType.TEST_CODE
+
+
+def test_convert_patched_file_added_file():
+    """Test converting a PatchedFile representing an added file"""
+    from unittest.mock import Mock
+
+    parser = GitDiffParser()
+
+    mock_patched_file = Mock()
+    mock_patched_file.is_rename = False
+    mock_patched_file.is_added_file = True
+    mock_patched_file.is_removed_file = False
+    mock_patched_file.path = "src/new_file.py"
+    mock_patched_file.source_file = "/dev/null"
+    mock_patched_file.target_file = "src/new_file.py"
+    mock_patched_file.is_binary_file = False
+    mock_patched_file.added = 10
+    mock_patched_file.removed = 0
+
+    parser._detect_file_type = Mock(return_value=FileType.SOURCE_CODE)
+
+    file_diff = parser._convert_patched_file(mock_patched_file)
+
+    assert file_diff is not None
+    assert file_diff.old_path is None
+    assert file_diff.new_path == "src/new_file.py"
+    assert file_diff.change_type == ChangeType.ADDED
+    assert file_diff.file_type == FileType.SOURCE_CODE
+    assert file_diff.is_binary is False
+    assert file_diff.lines_added == 10
+    assert file_diff.lines_removed == 0
+
+
+def test_convert_patched_file_modified_file():
+    """Test converting a PatchedFile representing a modified file"""
+    from unittest.mock import Mock
+
+    parser = GitDiffParser()
+
+    mock_patched_file = Mock()
+    mock_patched_file.is_rename = False
+    mock_patched_file.is_added_file = False
+    mock_patched_file.is_removed_file = False
+    mock_patched_file.path = "src/existing_file.py"
+    mock_patched_file.source_file = "src/existing_file.py"
+    mock_patched_file.target_file = "src/existing_file.py"
+    mock_patched_file.is_binary_file = False
+    mock_patched_file.added = 5
+    mock_patched_file.removed = 3
+
+    parser._detect_file_type = Mock(return_value=FileType.SOURCE_CODE)
+
+    file_diff = parser._convert_patched_file(mock_patched_file)
+
+    assert file_diff is not None
+    assert file_diff.old_path == "src/existing_file.py"
+    assert file_diff.new_path == "src/existing_file.py"
+    assert file_diff.change_type == ChangeType.MODIFIED
+    assert file_diff.file_type == FileType.SOURCE_CODE
+    assert file_diff.is_binary is False
+    assert file_diff.lines_added == 5
+    assert file_diff.lines_removed == 3
+
+
+def test_convert_patched_file_deleted_file():
+    """Test converting a PatchedFile representing a deleted file"""
+    from unittest.mock import Mock
+
+    parser = GitDiffParser()
+
+    mock_patched_file = Mock()
+    mock_patched_file.is_rename = False
+    mock_patched_file.is_added_file = False
+    mock_patched_file.is_removed_file = True
+    mock_patched_file.path = "src/deleted_file.py"
+    mock_patched_file.source_file = "src/deleted_file.py"
+    mock_patched_file.target_file = "/dev/null"
+    mock_patched_file.is_binary_file = False
+    mock_patched_file.added = 0
+    mock_patched_file.removed = 8
+
+    parser._detect_file_type = Mock(return_value=FileType.SOURCE_CODE)
+
+    file_diff = parser._convert_patched_file(mock_patched_file)
+
+    assert file_diff is not None
+    assert file_diff.old_path == "src/deleted_file.py"
+    assert file_diff.new_path is None
+    assert file_diff.change_type == ChangeType.DELETED
+    assert file_diff.file_type == FileType.SOURCE_CODE
+    assert file_diff.is_binary is False
+    assert file_diff.lines_added == 0
+    assert file_diff.lines_removed == 8
+
+
+def test_convert_patched_file_renamed_file():
+    """Test converting a PatchedFile representing a renamed file"""
+    from unittest.mock import Mock
+
+    parser = GitDiffParser()
+
+    mock_patched_file = Mock()
+    mock_patched_file.is_rename = True
+    mock_patched_file.is_added_file = False
+    mock_patched_file.is_removed_file = False
+    mock_patched_file.path = "src/new_name.py"
+    mock_patched_file.source_file = "src/old_name.py"
+    mock_patched_file.target_file = "src/new_name.py"
+    mock_patched_file.is_binary_file = False
+    mock_patched_file.added = 2
+    mock_patched_file.removed = 1
+
+    parser._detect_file_type = Mock(return_value=FileType.SOURCE_CODE)
+
+    file_diff = parser._convert_patched_file(mock_patched_file)
+
+    assert file_diff is not None
+    assert file_diff.old_path == "src/old_name.py"
+    assert file_diff.new_path == "src/new_name.py"
+    assert file_diff.change_type == ChangeType.RENAMED
+    assert file_diff.file_type == FileType.SOURCE_CODE
+    assert file_diff.is_binary is False
+    assert file_diff.lines_added == 2
+    assert file_diff.lines_removed == 1
+
+
+def test_convert_patched_file_exception_handling():
+    """Test that exceptions in _convert_patched_file are handled gracefully"""
+    from unittest.mock import Mock
+
+    parser = GitDiffParser()
+
+    mock_patched_file = Mock()
+    mock_patched_file.path = "src/file.py"
+    type(mock_patched_file).is_rename = Mock(side_effect=Exception("Test exception"))
+
+    file_diff = parser._convert_patched_file(mock_patched_file)
+
+    assert file_diff is None
