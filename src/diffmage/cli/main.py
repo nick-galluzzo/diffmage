@@ -16,4 +16,4 @@ def main(debug: bool = typer.Option(False, "--debug", "-d", help="Enable debug m
         except ImportError:
             print("debugpy not installed. Run 'uv pip install debugpy' to enable debugging.")
     
-    GitDiffParser()
+    parser = GitDiffParser()
