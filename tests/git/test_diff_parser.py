@@ -243,3 +243,134 @@ def test_convert_patched_file_exception_handling():
     file_diff = parser._convert_patched_file(mock_patched_file)
 
     assert file_diff is None
+
+
+def test_parse_staged_changes_normal_operation():
+    """Test parse_staged_changes with normal operation"""
+    from unittest.mock import Mock
+    from diffmage.core.models import CommitAnalysis, FileDiff, ChangeType, FileType
+
+    parser = GitDiffParser()
+
+    mock_repo = Mock()
+    mock_repo.git.diff.return_value = """diff --git a/src/main.py b/src/main.py
+index 1234567..89abcde 100644
+--- a/src/main.py
++++ b/src/main.py
+@@ -1,1 +1,2 @@
+ def main():
++    print("Hello, world!")
+"""
+    mock_repo.active_branch.name = "main"
+    parser.repo = mock_repo
+
+    mock_file_diff = FileDiff(
+        old_path="src/main.py",
+        new_path="src/main.py",
+        change_type=ChangeType.MODIFIED,
+        file_type=FileType.SOURCE_CODE,
+        is_binary=False,
+        lines_added=1,
+        lines_removed=0,
+    )
+
+    parser._convert_patched_file = Mock(return_value=mock_file_diff)
+
+    result = parser.parse_staged_changes()
+
+    assert isinstance(result, CommitAnalysis)
+    assert result.total_files == 1
+    assert result.total_lines_added == 1
+    assert result.total_lines_removed == 0
+    assert result.branch_name == "main"
+    assert len(result.files) == 1
+    assert result.files[0].lines_added == 1
+    assert result.files[0].lines_removed == 0
+
+
+def test_parse_staged_changes_git_command_error():
+    """Test parse_staged_changes when git command fails"""
+    from unittest.mock import Mock
+    import pytest
+    import git
+
+    parser = GitDiffParser()
+
+    mock_repo = Mock()
+    mock_repo.git.diff.side_effect = git.exc.GitCommandError(
+        "git diff", "Git command failed"
+    )
+    parser.repo = mock_repo
+
+    with pytest.raises(ValueError, match="Failed to get staged changes from git"):
+        parser.parse_staged_changes()
+
+
+def test_parse_staged_changes_no_staged_changes():
+    """Test parse_staged_changes when no staged changes are found"""
+    from unittest.mock import Mock
+    import pytest
+
+    parser = GitDiffParser()
+
+    mock_repo = Mock()
+    mock_repo.git.diff.return_value = ""
+    mock_repo.active_branch.name = "main"
+    parser.repo = mock_repo
+
+    with pytest.raises(ValueError, match="No staged changes found"):
+        parser.parse_staged_changes()
+
+
+def test_parse_staged_changes_diff_parsing_error():
+    """Test parse_staged_changes when diff parsing fails"""
+    from unittest.mock import Mock
+    import pytest
+    from unidiff.errors import UnidiffParseError
+
+    parser = GitDiffParser()
+
+    mock_repo = Mock()
+    mock_repo.git.diff.return_value = "some text that will cause parsing to fail"
+    mock_repo.active_branch.name = "main"
+    parser.repo = mock_repo
+
+    with pytest.MonkeyPatch().context() as m:
+        m.setattr(
+            "diffmage.git.diff_parser.PatchSet",
+            Mock(side_effect=UnidiffParseError("Parse error")),
+        )
+
+        with pytest.raises(ValueError, match="Failed to parse staged changes"):
+            parser.parse_staged_changes()
+
+
+def test_parse_staged_changes_empty_file_list():
+    """Test parse_staged_changes when _convert_patched_file returns None for all files"""
+    from unittest.mock import Mock
+    from diffmage.core.models import CommitAnalysis
+
+    parser = GitDiffParser()
+
+    mock_repo = Mock()
+    mock_repo.git.diff.return_value = """diff --git a/src/main.py b/src/main.py
+index 1234567..89abcde 100644
+--- a/src/main.py
++++ b/src/main.py
+@@ -1,1 +1,2 @@
+ def main():
++    print("Hello, world!")
+"""
+    mock_repo.active_branch.name = "main"
+    parser.repo = mock_repo
+
+    parser._convert_patched_file = Mock(return_value=None)
+
+    result = parser.parse_staged_changes()
+
+    assert isinstance(result, CommitAnalysis)
+    assert result.total_files == 0
+    assert result.total_lines_added == 0
+    assert result.total_lines_removed == 0
+    assert result.branch_name == "main"
+    assert len(result.files) == 0
