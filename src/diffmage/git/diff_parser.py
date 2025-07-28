@@ -97,7 +97,11 @@ class GitDiffParser:
             or name.endswith("_test")
             or name.endswith("_spec")
             or "_test." in name
+            or "_test_" in name
+            or ".test." in name
             or "_spec." in name
+            or "_spec_" in name
+            or ".spec." in name
         )
 
         if is_test_file and ext in {".py", ".js", ".ts", ".java", ".cpp", ".rb", ".go"}:
@@ -111,8 +115,15 @@ class GitDiffParser:
             ".toml",
             ".ini",
             ".conf",
+        } or name in {
+            "dockerfile",
+            "docker-compose.yml",
+            "docker-compose.yaml",
+            ".dockerignore",
+            ".dockerfile",
             ".env",
-        } or name in {"dockerfile", "docker-compose.yml", "docker-compose.yaml"}:
+            ".env.local",
+        }:
             return FileType.CONFIG
 
         # Source code
