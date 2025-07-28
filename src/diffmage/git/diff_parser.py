@@ -67,12 +67,16 @@ class GitDiffParser:
             file_type = self.file_detector.detect_file_type(patched_file.path)
 
             return FileDiff(
-                old_path=patched_file.source_file
-                if patched_file.source_file != "/dev/null"
-                else None,
-                new_path=patched_file.target_file
-                if patched_file.target_file != "/dev/null"
-                else None,
+                old_path=(
+                    patched_file.source_file
+                    if patched_file.source_file != "/dev/null"
+                    else None
+                ),
+                new_path=(
+                    patched_file.target_file
+                    if patched_file.target_file != "/dev/null"
+                    else None
+                ),
                 change_type=change_type,
                 file_type=file_type,
                 is_binary=patched_file.is_binary_file,
