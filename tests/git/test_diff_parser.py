@@ -32,108 +32,8 @@ def sample_file_diff():
     )
 
 
-def test_detect_file_type_source_code(parser):
-    """Test detection of source code files"""
-
-    # Python files
-    assert parser._detect_file_type("src/main.py") == FileType.SOURCE_CODE
-    assert parser._detect_file_type("app.py") == FileType.SOURCE_CODE
-
-    # JavaScript files
-    assert parser._detect_file_type("src/app.js") == FileType.SOURCE_CODE
-    assert parser._detect_file_type("index.jsx") == FileType.SOURCE_CODE
-
-    # TypeScript files
-    assert parser._detect_file_type("src/app.ts") == FileType.SOURCE_CODE
-    assert parser._detect_file_type("component.tsx") == FileType.SOURCE_CODE
-
-
-def test_detect_file_type_test_files(parser):
-    """Test detection of test files"""
-
-    # Test files in test directories
-    assert parser._detect_file_type("tests/test_main.py") == FileType.TEST_CODE
-    assert parser._detect_file_type("test/unit_test.js") == FileType.TEST_CODE
-
-    # Test files with test naming patterns
-    assert parser._detect_file_type("src/test_main.py") == FileType.TEST_CODE
-    assert parser._detect_file_type("src/main_test.py") == FileType.TEST_CODE
-    assert parser._detect_file_type("src/main_spec.py") == FileType.TEST_CODE
-
-    # Files with test in the middle of the name
-    assert (
-        parser._detect_file_type("src/integration_test_helper.py") == FileType.TEST_CODE
-    )
-
-
-def test_detect_file_type_config_files(parser):
-    """Test detection of configuration files"""
-
-    # YAML files
-    assert parser._detect_file_type(".github/workflows/ci.yml") == FileType.CONFIG
-    assert parser._detect_file_type("config.yaml") == FileType.CONFIG
-
-    # JSON files
-    assert parser._detect_file_type("package.json") == FileType.CONFIG
-    assert parser._detect_file_type("tsconfig.json") == FileType.CONFIG
-
-    # TOML files
-    assert parser._detect_file_type("pyproject.toml") == FileType.CONFIG
-    assert parser._detect_file_type("Cargo.toml") == FileType.CONFIG
-
-    # Environment files
-    assert parser._detect_file_type(".env") == FileType.CONFIG
-    assert parser._detect_file_type(".env.local") == FileType.CONFIG
-
-    # Docker files
-    assert parser._detect_file_type("Dockerfile") == FileType.CONFIG
-    assert parser._detect_file_type("docker-compose.yml") == FileType.CONFIG
-
-
-def test_detect_file_type_documentation(parser):
-    """Test detection of documentation files"""
-
-    # Markdown files
-    assert parser._detect_file_type("README.md") == FileType.DOCUMENTATION
-    assert parser._detect_file_type("docs/guide.md") == FileType.DOCUMENTATION
-
-    # Text files
-    assert parser._detect_file_type("LICENSE.txt") == FileType.DOCUMENTATION
-    assert parser._detect_file_type("notes.txt") == FileType.DOCUMENTATION
-
-    # Binary documentation files
-    assert parser._detect_file_type("document.pdf") == FileType.DOCUMENTATION
-    assert parser._detect_file_type("presentation.pptx") == FileType.DOCUMENTATION
-
-
-def test_detect_file_type_unknown(parser):
-    """Test detection of unknown file types"""
-
-    # Files with unknown extensions
-    assert parser._detect_file_type("data.dat") == FileType.UNKNOWN
-    assert parser._detect_file_type("temp.tmp") == FileType.UNKNOWN
-
-    # Files without extensions
-    assert parser._detect_file_type("LICENSE") == FileType.UNKNOWN
-    assert parser._detect_file_type("Makefile") == FileType.UNKNOWN
-
-
-def test_detect_file_type_edge_cases(parser):
-    """Test edge cases in file type detection"""
-
-    # File with "test" in name but not a test file
-    # This should be classified as source code, not test code
-    assert parser._detect_file_type("src/latest.py") == FileType.SOURCE_CODE
-    assert parser._detect_file_type("src/contest.js") == FileType.SOURCE_CODE
-    assert parser._detect_file_type("src/__tests__/main.py") == FileType.TEST_CODE
-    assert parser._detect_file_type("src/file.test.py") == FileType.TEST_CODE
-
-
-def test_convert_patched_file_added_file():
+def test_convert_patched_file_added_file(parser):
     """Test converting a PatchedFile representing an added file"""
-    from unittest.mock import Mock
-
-    parser = GitDiffParser()
 
     mock_patched_file = Mock()
     mock_patched_file.is_rename = False
@@ -160,11 +60,8 @@ def test_convert_patched_file_added_file():
     assert file_diff.lines_removed == 0
 
 
-def test_convert_patched_file_modified_file():
+def test_convert_patched_file_modified_file(parser):
     """Test converting a PatchedFile representing a modified file"""
-    from unittest.mock import Mock
-
-    parser = GitDiffParser()
 
     mock_patched_file = Mock()
     mock_patched_file.is_rename = False
@@ -191,11 +88,8 @@ def test_convert_patched_file_modified_file():
     assert file_diff.lines_removed == 3
 
 
-def test_convert_patched_file_deleted_file():
+def test_convert_patched_file_deleted_file(parser):
     """Test converting a PatchedFile representing a deleted file"""
-    from unittest.mock import Mock
-
-    parser = GitDiffParser()
 
     mock_patched_file = Mock()
     mock_patched_file.is_rename = False
@@ -222,11 +116,8 @@ def test_convert_patched_file_deleted_file():
     assert file_diff.lines_removed == 8
 
 
-def test_convert_patched_file_renamed_file():
+def test_convert_patched_file_renamed_file(parser):
     """Test converting a PatchedFile representing a renamed file"""
-    from unittest.mock import Mock
-
-    parser = GitDiffParser()
 
     mock_patched_file = Mock()
     mock_patched_file.is_rename = True
@@ -253,11 +144,8 @@ def test_convert_patched_file_renamed_file():
     assert file_diff.lines_removed == 1
 
 
-def test_convert_patched_file_exception_handling():
+def test_convert_patched_file_exception_handling(parser):
     """Test that exceptions in _convert_patched_file are handled gracefully"""
-    from unittest.mock import Mock
-
-    parser = GitDiffParser()
 
     mock_patched_file = Mock()
     mock_patched_file.path = "src/file.py"
@@ -297,12 +185,8 @@ def test_parse_staged_changes_normal_operation(parser, mock_repo, sample_file_di
     assert result.files[0].lines_removed == 0
 
 
-def test_parse_staged_changes_git_command_error():
+def test_parse_staged_changes_git_command_error(parser, mock_repo):
     """Test parse_staged_changes when git command fails"""
-    from unittest.mock import Mock
-    import pytest
-
-    parser = GitDiffParser()
 
     mock_repo = Mock()
     mock_repo.git.diff.side_effect = git.exc.GitCommandError(
@@ -314,14 +198,9 @@ def test_parse_staged_changes_git_command_error():
         parser.parse_staged_changes()
 
 
-def test_parse_staged_changes_no_staged_changes():
+def test_parse_staged_changes_no_staged_changes(parser, mock_repo):
     """Test parse_staged_changes when no staged changes are found"""
-    from unittest.mock import Mock
-    import pytest
 
-    parser = GitDiffParser()
-
-    mock_repo = Mock()
     mock_repo.git.diff.return_value = ""
     mock_repo.active_branch.name = "main"
     parser.repo = mock_repo
@@ -330,14 +209,9 @@ def test_parse_staged_changes_no_staged_changes():
         parser.parse_staged_changes()
 
 
-def test_parse_staged_changes_diff_parsing_error():
+def test_parse_staged_changes_diff_parsing_error(parser, mock_repo):
     """Test parse_staged_changes when diff parsing fails"""
-    from unittest.mock import Mock
-    import pytest
 
-    parser = GitDiffParser()
-
-    mock_repo = Mock()
     mock_repo.git.diff.return_value = "some text that will cause parsing to fail"
     mock_repo.active_branch.name = "main"
     parser.repo = mock_repo

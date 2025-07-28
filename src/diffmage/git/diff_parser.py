@@ -1,8 +1,8 @@
 from typing import Optional
-from pathlib import Path
 import git
+from diffmage.utils.file_detector import FileDetector
 from unidiff import PatchSet, PatchedFile
-from diffmage.core.models import CommitAnalysis, FileDiff, ChangeType, FileType
+from diffmage.core.models import CommitAnalysis, FileDiff, ChangeType
 
 
 class GitDiffParser:
@@ -10,6 +10,7 @@ class GitDiffParser:
 
     def __init__(self, repo_path: str = "."):
         self.repo = git.Repo(repo_path)
+        self.file_detector = FileDetector()
 
     def parse_staged_changes(self) -> CommitAnalysis:
         """Parse staged changes from git using the unidiff library"""
@@ -63,7 +64,7 @@ class GitDiffParser:
                 change_type = ChangeType.MODIFIED
 
             # Determine the file type
-            file_type = self._detect_file_type(patched_file.path)
+            file_type = self.file_detector.detect_file_type(patched_file.path)
 
             return FileDiff(
                 old_path=patched_file.source_file
@@ -81,78 +82,3 @@ class GitDiffParser:
         except Exception:
             # If we can't convert the file, return None to skip it
             return None
-
-    def _detect_file_type(self, file_path: str) -> FileType:
-        """Detect file type with early returns for clarity."""
-
-        path = Path(file_path)
-        ext = path.suffix.lower()
-        name = path.name.lower()
-        parts = path.parts
-
-        # Test files
-        is_test_file = (
-            any(part in ["test", "tests", "__tests__"] for part in parts)
-            or name.startswith("test_")
-            or name.endswith("_test")
-            or name.endswith("_spec")
-            or "_test." in name
-            or "_test_" in name
-            or ".test." in name
-            or "_spec." in name
-            or "_spec_" in name
-            or ".spec." in name
-        )
-
-        if is_test_file and ext in {".py", ".js", ".ts", ".java", ".cpp", ".rb", ".go"}:
-            return FileType.TEST_CODE
-
-        # Configuration files
-        if ext in {
-            ".yml",
-            ".yaml",
-            ".json",
-            ".toml",
-            ".ini",
-            ".conf",
-        } or name in {
-            "dockerfile",
-            "docker-compose.yml",
-            "docker-compose.yaml",
-            ".dockerignore",
-            ".dockerfile",
-            ".env",
-            ".env.local",
-        }:
-            return FileType.CONFIG
-
-        # Source code
-        if ext in {
-            ".py",
-            ".js",
-            ".ts",
-            ".jsx",
-            ".tsx",
-            ".java",
-            ".cpp",
-            ".c",
-            ".h",
-            ".rb",
-            ".erb",
-            ".go",
-            ".rs",
-            ".php",
-            ".cs",
-            ".swift",
-        }:
-            return FileType.SOURCE_CODE
-
-        # Documentation
-        if ext in {".md", ".txt", ".rst", ".tex"}:
-            return FileType.DOCUMENTATION
-
-        # Binary docs
-        if ext in {".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx"}:
-            return FileType.DOCUMENTATION
-
-        return FileType.UNKNOWN
