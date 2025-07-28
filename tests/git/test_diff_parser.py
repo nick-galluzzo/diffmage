@@ -1,11 +1,39 @@
+import pytest
+from unittest.mock import Mock
 from diffmage.git.diff_parser import GitDiffParser
-from diffmage.core.models import ChangeType
-from diffmage.core.models import FileType
+from diffmage.core.models import ChangeType, FileType, FileDiff, CommitAnalysis
+import git
+from unidiff.errors import UnidiffParseError
 
 
-def test_detect_file_type_source_code():
+@pytest.fixture
+def parser():
+    """Create a GitDiffParser instance for testing."""
+    return GitDiffParser()
+
+
+@pytest.fixture
+def mock_repo():
+    """Create a mock git repo for testing."""
+    return Mock()
+
+
+@pytest.fixture
+def sample_file_diff():
+    """Create a sample FileDiff object for testing."""
+    return FileDiff(
+        old_path="src/main.py",
+        new_path="src/main.py",
+        change_type=ChangeType.MODIFIED,
+        file_type=FileType.SOURCE_CODE,
+        is_binary=False,
+        lines_added=1,
+        lines_removed=0,
+    )
+
+
+def test_detect_file_type_source_code(parser):
     """Test detection of source code files"""
-    parser = GitDiffParser()
 
     # Python files
     assert parser._detect_file_type("src/main.py") == FileType.SOURCE_CODE
@@ -20,9 +48,8 @@ def test_detect_file_type_source_code():
     assert parser._detect_file_type("component.tsx") == FileType.SOURCE_CODE
 
 
-def test_detect_file_type_test_files():
+def test_detect_file_type_test_files(parser):
     """Test detection of test files"""
-    parser = GitDiffParser()
 
     # Test files in test directories
     assert parser._detect_file_type("tests/test_main.py") == FileType.TEST_CODE
@@ -39,9 +66,8 @@ def test_detect_file_type_test_files():
     )
 
 
-def test_detect_file_type_config_files():
+def test_detect_file_type_config_files(parser):
     """Test detection of configuration files"""
-    parser = GitDiffParser()
 
     # YAML files
     assert parser._detect_file_type(".github/workflows/ci.yml") == FileType.CONFIG
@@ -64,9 +90,8 @@ def test_detect_file_type_config_files():
     assert parser._detect_file_type("docker-compose.yml") == FileType.CONFIG
 
 
-def test_detect_file_type_documentation():
+def test_detect_file_type_documentation(parser):
     """Test detection of documentation files"""
-    parser = GitDiffParser()
 
     # Markdown files
     assert parser._detect_file_type("README.md") == FileType.DOCUMENTATION
@@ -81,9 +106,8 @@ def test_detect_file_type_documentation():
     assert parser._detect_file_type("presentation.pptx") == FileType.DOCUMENTATION
 
 
-def test_detect_file_type_unknown():
+def test_detect_file_type_unknown(parser):
     """Test detection of unknown file types"""
-    parser = GitDiffParser()
 
     # Files with unknown extensions
     assert parser._detect_file_type("data.dat") == FileType.UNKNOWN
@@ -94,9 +118,8 @@ def test_detect_file_type_unknown():
     assert parser._detect_file_type("Makefile") == FileType.UNKNOWN
 
 
-def test_detect_file_type_edge_cases():
+def test_detect_file_type_edge_cases(parser):
     """Test edge cases in file type detection"""
-    parser = GitDiffParser()
 
     # File with "test" in name but not a test file
     # This should be classified as source code, not test code
@@ -245,36 +268,22 @@ def test_convert_patched_file_exception_handling():
     assert file_diff is None
 
 
-def test_parse_staged_changes_normal_operation():
+def test_parse_staged_changes_normal_operation(parser, mock_repo, sample_file_diff):
     """Test parse_staged_changes with normal operation"""
-    from unittest.mock import Mock
-    from diffmage.core.models import CommitAnalysis, FileDiff, ChangeType, FileType
 
-    parser = GitDiffParser()
-
-    mock_repo = Mock()
     mock_repo.git.diff.return_value = """diff --git a/src/main.py b/src/main.py
-index 1234567..89abcde 100644
---- a/src/main.py
-+++ b/src/main.py
-@@ -1,1 +1,2 @@
- def main():
-+    print("Hello, world!")
-"""
+    index 1234567..89abcde 100644
+    --- a/src/main.py
+    +++ b/src/main.py
+    @@ -1,1 +1,2 @@
+    def main():
+    +    print("Hello, world!")
+    """
+
     mock_repo.active_branch.name = "main"
     parser.repo = mock_repo
 
-    mock_file_diff = FileDiff(
-        old_path="src/main.py",
-        new_path="src/main.py",
-        change_type=ChangeType.MODIFIED,
-        file_type=FileType.SOURCE_CODE,
-        is_binary=False,
-        lines_added=1,
-        lines_removed=0,
-    )
-
-    parser._convert_patched_file = Mock(return_value=mock_file_diff)
+    parser._convert_patched_file = Mock(return_value=sample_file_diff)
 
     result = parser.parse_staged_changes()
 
@@ -292,7 +301,6 @@ def test_parse_staged_changes_git_command_error():
     """Test parse_staged_changes when git command fails"""
     from unittest.mock import Mock
     import pytest
-    import git
 
     parser = GitDiffParser()
 
@@ -326,7 +334,6 @@ def test_parse_staged_changes_diff_parsing_error():
     """Test parse_staged_changes when diff parsing fails"""
     from unittest.mock import Mock
     import pytest
-    from unidiff.errors import UnidiffParseError
 
     parser = GitDiffParser()
 
@@ -345,22 +352,17 @@ def test_parse_staged_changes_diff_parsing_error():
             parser.parse_staged_changes()
 
 
-def test_parse_staged_changes_empty_file_list():
+def test_parse_staged_changes_empty_file_list(parser, mock_repo):
     """Test parse_staged_changes when _convert_patched_file returns None for all files"""
-    from unittest.mock import Mock
-    from diffmage.core.models import CommitAnalysis
 
-    parser = GitDiffParser()
-
-    mock_repo = Mock()
     mock_repo.git.diff.return_value = """diff --git a/src/main.py b/src/main.py
-index 1234567..89abcde 100644
---- a/src/main.py
-+++ b/src/main.py
-@@ -1,1 +1,2 @@
- def main():
-+    print("Hello, world!")
-"""
+    index 1234567..89abcde 100644
+    --- a/src/main.py
+    +++ b/src/main.py
+    @@ -1,1 +1,2 @@
+    def main():
+    +    print("Hello, world!")
+    """
     mock_repo.active_branch.name = "main"
     parser.repo = mock_repo
 
