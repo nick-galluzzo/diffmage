@@ -1,4 +1,5 @@
 from typing import Optional
+from pathlib import Path
 import git
 from unidiff import PatchSet, PatchedFile
 from diffmage.core.models import CommitAnalysis, FileDiff, ChangeType, FileType
@@ -61,8 +62,7 @@ class GitDiffParser:
       change_type = ChangeType.MODIFIED
     
     # Determine the file type
-    # TODO
-    file_type = FileType.SOURCE_CODE
+    file_type = self._detect_file_type(patched_file.path)
 
     return FileDiff(
       old_path=patched_file.source_file if patched_file.source_file != '/dev/null' else None,
@@ -73,3 +73,36 @@ class GitDiffParser:
       lines_added=patched_file.added,
       lines_removed=patched_file.removed
     )
+  
+  def _detect_file_type(self, file_path: str) -> FileType:
+    """Detect file type with early returns for clarity."""
+    
+    path = Path(file_path)
+    ext = path.suffix.lower()
+    name = path.name.lower()
+    path_str = str(path).lower()
+
+    # Test files
+    if any(pattern in path_str for pattern in ['test', 'spec', '__tests__']):
+        if ext in {'.py', '.js', '.ts', '.java', '.cpp', '.rb', '.go'}:
+            return FileType.TEST_CODE
+    
+    # Configuration files
+    if (ext in {'.yml', '.yaml', '.json', '.toml', '.ini', '.conf', '.env'} or 
+        name in {'dockerfile', 'docker-compose.yml', 'docker-compose.yaml'}):
+        return FileType.CONFIG
+    
+    # Source code
+    if ext in {'.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.cpp', '.c', 
+               '.h', '.rb', '.erb', '.go', '.rs', '.php', '.cs', '.swift'}:
+        return FileType.SOURCE_CODE
+    
+    # Documentation
+    if ext in {'.md', '.txt', '.rst', '.tex'}:
+        return FileType.DOCUMENTATION
+    
+    # Binary docs
+    if ext in {'.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx'}:
+        return FileType.DOCUMENTATION
+    
+    return FileType.UNKNOWN
