@@ -51,19 +51,7 @@ class GitDiffParser:
         """Convert a unidiff PatchedFile to a FileDiff object"""
 
         try:
-            # Determine the change type
-            # For files that are both renamed and modified,
-            # we prioritize RENAMED since that's the structural change.
-            if patched_file.is_rename:
-                change_type = ChangeType.RENAMED
-            elif patched_file.is_added_file:
-                change_type = ChangeType.ADDED
-            elif patched_file.is_removed_file:
-                change_type = ChangeType.DELETED
-            else:
-                change_type = ChangeType.MODIFIED
-
-            # Determine the file type
+            change_type = self._determine_change_type(patched_file)
             file_type = self.file_detector.detect_file_type(patched_file.path)
 
             return FileDiff(
@@ -86,3 +74,15 @@ class GitDiffParser:
         except Exception:
             # If we can't convert the file, return None to skip it
             return None
+
+    def _determine_change_type(self, patched_file: PatchedFile) -> ChangeType:
+        """Detect the change type of a patched file"""
+        # For files that are both renamed and modified,
+        # we prioritize RENAMED since that's the structural change.
+        if patched_file.is_rename:
+            return ChangeType.RENAMED
+        if patched_file.is_added_file:
+            return ChangeType.ADDED
+        if patched_file.is_removed_file:
+            return ChangeType.DELETED
+        return ChangeType.MODIFIED
