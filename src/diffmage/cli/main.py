@@ -21,7 +21,7 @@ def analyze(
         "summary", "--output", "-o", help="Output format: summary, json, table"
     ),
     debug: bool = typer.Option(False, "--debug", "-d", help="Enable debug mode"),
-):
+) -> None:
     """Analyze git changes and extract structured information"""
     try:
         import debugpy
@@ -48,7 +48,7 @@ def analyze(
         raise typer.Exit(1)
 
 
-def display_summary_output(analysis: CommitAnalysis):
+def display_summary_output(analysis: CommitAnalysis) -> None:
     """Rich summary display of commit analysis"""
     # Header
     console.print(
@@ -71,7 +71,7 @@ def display_summary_output(analysis: CommitAnalysis):
             console.print(f"  ... and {len(analysis.files) - 10} more files")
 
 
-def display_table_output(analysis: CommitAnalysis):
+def display_table_output(analysis: CommitAnalysis) -> None:
     """Table format display of commit analysis"""
     table = Table(title="File Changes")
     table.add_column("File", style="cyan")

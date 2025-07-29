@@ -4,12 +4,12 @@ from diffmage.utils.file_detector import FileDetector
 
 
 @pytest.fixture
-def file_detector():
+def file_detector() -> FileDetector:
     """Create a FileDetector instance for testing."""
     return FileDetector()
 
 
-def test_detect_file_type_source_code(file_detector):
+def test_detect_file_type_source_code(file_detector: FileDetector) -> None:
     """Test detection of source code files"""
 
     # Python files
@@ -25,7 +25,7 @@ def test_detect_file_type_source_code(file_detector):
     assert file_detector.detect_file_type("component.tsx") == FileType.SOURCE_CODE
 
 
-def test_detect_file_type_test_files(file_detector):
+def test_detect_file_type_test_files(file_detector: FileDetector) -> None:
     """Test detection of test files"""
 
     # Test files in test directories
@@ -44,7 +44,7 @@ def test_detect_file_type_test_files(file_detector):
     )
 
 
-def test_detect_file_type_config_files(file_detector):
+def test_detect_file_type_config_files(file_detector: FileDetector) -> None:
     """Test detection of configuration files"""
 
     # YAML files
@@ -68,7 +68,7 @@ def test_detect_file_type_config_files(file_detector):
     assert file_detector.detect_file_type("docker-compose.yml") == FileType.CONFIG
 
 
-def test_detect_file_type_documentation(file_detector):
+def test_detect_file_type_documentation(file_detector: FileDetector) -> None:
     """Test detection of documentation files"""
 
     # Markdown files
@@ -84,7 +84,7 @@ def test_detect_file_type_documentation(file_detector):
     assert file_detector.detect_file_type("presentation.pptx") == FileType.DOCUMENTATION
 
 
-def test_detect_file_type_unknown(file_detector):
+def test_detect_file_type_unknown(file_detector: FileDetector) -> None:
     """Test detection of unknown file types"""
 
     # Files with unknown extensions
@@ -96,7 +96,7 @@ def test_detect_file_type_unknown(file_detector):
     assert file_detector.detect_file_type("Makefile") == FileType.UNKNOWN
 
 
-def test_detect_file_type_edge_cases(file_detector):
+def test_detect_file_type_edge_cases(file_detector: FileDetector) -> None:
     """Test edge cases in file type detection"""
 
     # File with "test" in name but not a test file

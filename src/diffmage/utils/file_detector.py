@@ -5,7 +5,7 @@ from diffmage.core.models import FileType
 class FileDetector:
     """Detects file types based on path, extension, and content patterns"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
     def detect_file_type(self, file_path: str) -> FileType:

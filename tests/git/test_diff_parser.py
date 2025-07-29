@@ -7,19 +7,19 @@ from unidiff.errors import UnidiffParseError
 
 
 @pytest.fixture
-def parser():
+def parser() -> GitDiffParser:
     """Create a GitDiffParser instance for testing."""
     return GitDiffParser()
 
 
 @pytest.fixture
-def mock_repo():
+def mock_repo() -> Mock:
     """Create a mock git repo for testing."""
     return Mock()
 
 
 @pytest.fixture
-def sample_file_diff():
+def sample_file_diff() -> FileDiff:
     """Create a sample FileDiff object for testing."""
     return FileDiff(
         old_path="src/main.py",
@@ -32,7 +32,7 @@ def sample_file_diff():
     )
 
 
-def test_convert_patched_file_added_file(parser):
+def test_convert_patched_file_added_file(parser: GitDiffParser) -> None:
     """Test converting a PatchedFile representing an added file"""
 
     mock_patched_file = Mock()
@@ -46,7 +46,7 @@ def test_convert_patched_file_added_file(parser):
     mock_patched_file.added = 10
     mock_patched_file.removed = 0
 
-    parser._detect_file_type = Mock(return_value=FileType.SOURCE_CODE)
+    setattr(parser, "_detect_file_type", Mock(return_value=FileType.SOURCE_CODE))
 
     file_diff = parser._convert_patched_file(mock_patched_file)
 
@@ -60,7 +60,7 @@ def test_convert_patched_file_added_file(parser):
     assert file_diff.lines_removed == 0
 
 
-def test_convert_patched_file_modified_file(parser):
+def test_convert_patched_file_modified_file(parser: GitDiffParser) -> None:
     """Test converting a PatchedFile representing a modified file"""
 
     mock_patched_file = Mock()
@@ -74,7 +74,7 @@ def test_convert_patched_file_modified_file(parser):
     mock_patched_file.added = 5
     mock_patched_file.removed = 3
 
-    parser._detect_file_type = Mock(return_value=FileType.SOURCE_CODE)
+    setattr(parser, "_detect_file_type", Mock(return_value=FileType.SOURCE_CODE))
 
     file_diff = parser._convert_patched_file(mock_patched_file)
 
@@ -88,7 +88,7 @@ def test_convert_patched_file_modified_file(parser):
     assert file_diff.lines_removed == 3
 
 
-def test_convert_patched_file_deleted_file(parser):
+def test_convert_patched_file_deleted_file(parser: GitDiffParser) -> None:
     """Test converting a PatchedFile representing a deleted file"""
 
     mock_patched_file = Mock()
@@ -102,7 +102,7 @@ def test_convert_patched_file_deleted_file(parser):
     mock_patched_file.added = 0
     mock_patched_file.removed = 8
 
-    parser._detect_file_type = Mock(return_value=FileType.SOURCE_CODE)
+    setattr(parser, "_detect_file_type", Mock(return_value=FileType.SOURCE_CODE))
 
     file_diff = parser._convert_patched_file(mock_patched_file)
 
@@ -116,7 +116,7 @@ def test_convert_patched_file_deleted_file(parser):
     assert file_diff.lines_removed == 8
 
 
-def test_convert_patched_file_renamed_file(parser):
+def test_convert_patched_file_renamed_file(parser: GitDiffParser) -> None:
     """Test converting a PatchedFile representing a renamed file"""
 
     mock_patched_file = Mock()
@@ -130,7 +130,7 @@ def test_convert_patched_file_renamed_file(parser):
     mock_patched_file.added = 2
     mock_patched_file.removed = 1
 
-    parser._detect_file_type = Mock(return_value=FileType.SOURCE_CODE)
+    setattr(parser, "_detect_file_type", Mock(return_value=FileType.SOURCE_CODE))
 
     file_diff = parser._convert_patched_file(mock_patched_file)
 
@@ -144,7 +144,7 @@ def test_convert_patched_file_renamed_file(parser):
     assert file_diff.lines_removed == 1
 
 
-def test_convert_patched_file_exception_handling(parser):
+def test_convert_patched_file_exception_handling(parser: GitDiffParser) -> None:
     """Test that exceptions in _convert_patched_file are handled gracefully"""
 
     mock_patched_file = Mock()
@@ -156,7 +156,9 @@ def test_convert_patched_file_exception_handling(parser):
     assert file_diff is None
 
 
-def test_parse_staged_changes_normal_operation(parser, mock_repo, sample_file_diff):
+def test_parse_staged_changes_normal_operation(
+    parser: GitDiffParser, mock_repo: Mock, sample_file_diff: FileDiff
+) -> None:
     """Test parse_staged_changes with normal operation"""
 
     mock_repo.git.diff.return_value = """diff --git a/src/main.py b/src/main.py
@@ -171,7 +173,7 @@ def test_parse_staged_changes_normal_operation(parser, mock_repo, sample_file_di
     mock_repo.active_branch.name = "main"
     parser.repo = mock_repo
 
-    parser._convert_patched_file = Mock(return_value=sample_file_diff)
+    setattr(parser, "_convert_patched_file", Mock(return_value=sample_file_diff))
 
     result = parser.parse_staged_changes()
 
@@ -185,11 +187,13 @@ def test_parse_staged_changes_normal_operation(parser, mock_repo, sample_file_di
     assert result.files[0].lines_removed == 0
 
 
-def test_parse_staged_changes_git_command_error(parser, mock_repo):
+def test_parse_staged_changes_git_command_error(
+    parser: GitDiffParser, mock_repo: Mock
+) -> None:
     """Test parse_staged_changes when git command fails"""
 
     mock_repo = Mock()
-    mock_repo.git.diff.side_effect = git.exc.GitCommandError(
+    mock_repo.git.diff.side_effect = git.GitCommandError(
         "git diff", "Git command failed"
     )
     parser.repo = mock_repo
@@ -198,7 +202,9 @@ def test_parse_staged_changes_git_command_error(parser, mock_repo):
         parser.parse_staged_changes()
 
 
-def test_parse_staged_changes_no_staged_changes(parser, mock_repo):
+def test_parse_staged_changes_no_staged_changes(
+    parser: GitDiffParser, mock_repo: Mock
+) -> None:
     """Test parse_staged_changes when no staged changes are found"""
 
     mock_repo.git.diff.return_value = ""
@@ -209,7 +215,9 @@ def test_parse_staged_changes_no_staged_changes(parser, mock_repo):
         parser.parse_staged_changes()
 
 
-def test_parse_staged_changes_diff_parsing_error(parser, mock_repo):
+def test_parse_staged_changes_diff_parsing_error(
+    parser: GitDiffParser, mock_repo: Mock
+) -> None:
     """Test parse_staged_changes when diff parsing fails"""
 
     mock_repo.git.diff.return_value = "some text that will cause parsing to fail"
@@ -226,7 +234,9 @@ def test_parse_staged_changes_diff_parsing_error(parser, mock_repo):
             parser.parse_staged_changes()
 
 
-def test_parse_staged_changes_empty_file_list(parser, mock_repo):
+def test_parse_staged_changes_empty_file_list(
+    parser: GitDiffParser, mock_repo: Mock
+) -> None:
     """Test parse_staged_changes when _convert_patched_file returns None for all files"""
 
     mock_repo.git.diff.return_value = """diff --git a/src/main.py b/src/main.py
@@ -240,7 +250,7 @@ def test_parse_staged_changes_empty_file_list(parser, mock_repo):
     mock_repo.active_branch.name = "main"
     parser.repo = mock_repo
 
-    parser._convert_patched_file = Mock(return_value=None)
+    setattr(parser, "_convert_patched_file", Mock(return_value=None))
 
     result = parser.parse_staged_changes()
 

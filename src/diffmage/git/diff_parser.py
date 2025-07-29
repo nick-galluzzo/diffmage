@@ -17,7 +17,7 @@ class GitDiffParser:
 
         try:
             diff_text = self.repo.git.diff("--cached", "--no-color")
-        except git.exc.GitCommandError:
+        except git.GitCommandError:
             raise ValueError("Failed to get staged changes from git")
 
         if not diff_text.strip():
