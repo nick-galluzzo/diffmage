@@ -83,6 +83,7 @@ class GitDiffParser:
                 is_binary=patched_file.is_binary_file,
                 lines_added=patched_file.added,
                 lines_removed=patched_file.removed,
+                hunks=hunks,
             )
         except Exception:
             # Skip files that we can't convert
