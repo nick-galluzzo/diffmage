@@ -66,3 +66,26 @@ class CommitAnalysis(BaseModel):
                 "timestamp": datetime.now().isoformat(),
             },
         }
+
+
+class HunkLine(BaseModel):
+    """Represents a line in a hunk"""
+
+    line_type: str
+    is_removed: bool
+    is_added: bool
+    is_context: bool
+    content: str
+    old_line_number: Optional[int]
+    new_line_number: Optional[int]
+
+
+class DiffHunk(BaseModel):
+    """Represents a hunk in a diff"""
+
+    old_start_line: int
+    old_lines_count: int
+    new_start_line: int
+    new_lines_count: int
+    section_header: str
+    lines: list[HunkLine]

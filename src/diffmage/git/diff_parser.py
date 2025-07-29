@@ -1,8 +1,14 @@
 from typing import Optional
 import git
 from diffmage.utils.file_detector import FileDetector
-from unidiff import PatchSet, PatchedFile
-from diffmage.core.models import CommitAnalysis, FileDiff, ChangeType
+from unidiff import PatchSet, PatchedFile, Hunk
+from diffmage.core.models import (
+    CommitAnalysis,
+    FileDiff,
+    ChangeType,
+    HunkLine,
+    DiffHunk,
+)
 
 
 class GitDiffParser:
@@ -54,6 +60,13 @@ class GitDiffParser:
             change_type = self._determine_change_type(patched_file)
             file_type = self.file_detector.detect_file_type(patched_file.path)
 
+            hunks = []
+            if not patched_file.is_binary_file:
+                for hunk in patched_file:
+                    diff_hunk = self._convert_hunk(hunk)
+                    if diff_hunk:
+                        hunks.append(diff_hunk)
+
             return FileDiff(
                 old_path=(
                     patched_file.source_file
@@ -72,7 +85,7 @@ class GitDiffParser:
                 lines_removed=patched_file.removed,
             )
         except Exception:
-            # If we can't convert the file, return None to skip it
+            # Skip files that we can't convert
             return None
 
     def _determine_change_type(self, patched_file: PatchedFile) -> ChangeType:
@@ -86,3 +99,35 @@ class GitDiffParser:
         if patched_file.is_removed_file:
             return ChangeType.DELETED
         return ChangeType.MODIFIED
+
+    def _convert_hunk(self, hunk: Hunk) -> Optional[DiffHunk]:
+        """Convert a unidiff Hunk to a DiffHunk object with line by line content"""
+        try:
+            lines = []
+
+            for line in hunk:
+                hunk_line = HunkLine(
+                    line_type=line.line_type,  # '+', '-', or ' '
+                    is_removed=line.is_removed,
+                    is_added=line.is_added,
+                    is_context=line.is_context,  # True if line is not a change
+                    content=line.value.rstrip("\n"),  # Remove trailing newline
+                    old_line_number=line.source_line_no
+                    if line.source_line_no
+                    else None,
+                    new_line_number=line.target_line_no
+                    if line.target_line_no
+                    else None,
+                )
+                lines.append(hunk_line)
+
+            return DiffHunk(
+                old_start_line=hunk.source_start,
+                old_lines_count=hunk.source_length,
+                new_start_line=hunk.target_start,
+                new_lines_count=hunk.target_length,
+                section_header=hunk.section_header,
+                lines=lines,
+            )
+        except Exception:
+            return None
