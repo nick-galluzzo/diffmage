@@ -117,7 +117,7 @@ class FileDiff(BaseModel):
                 header += f" {hunk.section_header}"
             lines.append(header)
 
-            # Added lines
+            # Context, Removed, and Added lines
             for line in hunk.lines:
                 lines.append(f"{line.line_type}{line.content}")
 
