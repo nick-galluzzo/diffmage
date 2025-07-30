@@ -57,11 +57,29 @@ class SupportedModels(Enum):
         description="671B parameters. Performance on par with OpenAI o1.",
     )
 
+    Z_AI_GLM_4_5_AIR_FREE = ModelConfig(
+        name="openrouter/z-ai/glm-4.5-air:free",
+        display_name="Z-AI GLM 4.5 Air (Free)",
+        description="Lightweight version of Z-AI GLM 4.5.",
+    )
+
     # Paid OpenRouter Models
     LLAMA_4_MAVERICK = ModelConfig(
         name="openrouter/meta-llama/llama-4-maverick",
         display_name="Llama 4 Maverick",
         description="Llama 4 Maverick is a 17B (MoE). Supports multilingual text and image input and produces multilingual text and code. Tuned for assistant like behavior and general purpose multi-modal interaction.",
+    )
+
+    Z_AI_GLM_4_5 = ModelConfig(
+        name="openrouter/z-ai/glm-4.5",
+        display_name="Z-AI GLM 4.5",
+        description="Reasoning, code generation, and agent alignment. Supports thinking and non thinking modes.",
+    )
+
+    Z_AI_GLM_4_5_AIR = ModelConfig(
+        name="openrouter/z-ai/glm-4.5-air",
+        display_name="Z-AI GLM 4.5 Air",
+        description="Lightweight version of Z-AI GLM 4.5.",
     )
 
 
