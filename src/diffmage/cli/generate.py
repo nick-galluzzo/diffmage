@@ -1,13 +1,10 @@
 import typer
-from rich.console import Console
 from rich.table import Table
 from diffmage.core.models import CommitAnalysis
 from diffmage.ai.models import SupportedModels, get_default_model, get_model_by_name
-from diffmage.cli.shared import app
+from diffmage.cli.shared import app, console
 from diffmage.ai.client import AIClient
 from diffmage.git.diff_parser import GitDiffParser
-
-console = Console()
 
 
 @app.command()
@@ -48,10 +45,13 @@ def display_available_models():
 
     table = Table(title="Available AI Models")
     table.add_column("Name", style="bold")
+    table.add_column("Path", style="cyan", no_wrap=False)
     table.add_column("Description")
 
     for model_enum in SupportedModels:
         model_config = model_enum.value
-        table.add_row(model_config.display_name, model_config.description)
+        table.add_row(
+            model_config.display_name, model_config.name, model_config.description
+        )
 
     console.print(table)
