@@ -49,6 +49,7 @@ def test_convert_patched_file_added_file(parser: GitDiffParser) -> None:
     mock_patched_file.hunks = []
     mock_patched_file.__iter__ = Mock(return_value=iter([]))
 
+    parser.file_detector = Mock()
     parser.file_detector.detect_file_type = Mock(return_value=FileType.SOURCE_CODE)
 
     file_diff = parser._convert_patched_file(mock_patched_file)
@@ -78,6 +79,7 @@ def test_convert_patched_file_modified_file(parser: GitDiffParser) -> None:
     mock_patched_file.removed = 3
     mock_patched_file.__iter__ = Mock(return_value=iter([]))
 
+    parser.file_detector = Mock()
     parser.file_detector.detect_file_type = Mock(return_value=FileType.SOURCE_CODE)
 
     file_diff = parser._convert_patched_file(mock_patched_file)
@@ -107,6 +109,7 @@ def test_convert_patched_file_deleted_file(parser: GitDiffParser) -> None:
     mock_patched_file.removed = 8
     mock_patched_file.__iter__ = Mock(return_value=iter([]))
 
+    parser.file_detector = Mock()
     parser.file_detector.detect_file_type = Mock(return_value=FileType.SOURCE_CODE)
 
     file_diff = parser._convert_patched_file(mock_patched_file)
@@ -136,6 +139,7 @@ def test_convert_patched_file_renamed_file(parser: GitDiffParser) -> None:
     mock_patched_file.removed = 1
     mock_patched_file.__iter__ = Mock(return_value=iter([]))
 
+    parser.file_detector = Mock()
     parser.file_detector.detect_file_type = Mock(return_value=FileType.SOURCE_CODE)
 
     file_diff = parser._convert_patched_file(mock_patched_file)
