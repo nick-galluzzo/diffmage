@@ -104,8 +104,8 @@ class FileDiff(BaseModel):
         new_path = self.new_path or "/dev/null"
         lines.extend(
             [
-                f"--- a/{old_path}",
-                f"+++ b/{new_path}",
+                f"--- {old_path}",
+                f"+++ {new_path}",
             ]
         )
 
@@ -119,7 +119,7 @@ class FileDiff(BaseModel):
 
             # Added lines
             for line in hunk.lines:
-                lines.append(f"{line.line_type} {line.content}")
+                lines.append(f"{line.line_type}{line.content}")
 
         return "\n".join(lines)
 
