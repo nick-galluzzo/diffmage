@@ -64,6 +64,12 @@ class SupportedModels(Enum):
     )
 
     # Paid OpenRouter Models
+    QWEN_3_CODER = ModelConfig(
+        name="openrouter/qwen/qwen3-coder",
+        display_name="Qwen 3.5 Coder",
+        description="480B (MoE) model that excels in code generation. It is optimized for agentic coding tasks such as function calling, tool use, and long context reasoning over repositories.",
+    )
+
     LLAMA_4_MAVERICK = ModelConfig(
         name="openrouter/meta-llama/llama-4-maverick",
         display_name="Llama 4 Maverick",
