@@ -16,11 +16,11 @@ def generate(
         False, "--list-models", help="List all available models"
     ),
     repo_path: str = typer.Option(".", "--repo", "-r"),
-):
+) -> None:
     """Generate commit message from staged changes"""
 
     if list_models:
-        display_available_models()
+        _display_available_models()
         return
 
     # Validate model exists
@@ -40,7 +40,7 @@ def generate(
     console.print(f"[green]Commit message:[/green] {commit_message}")
 
 
-def display_available_models():
+def _display_available_models() -> None:
     """Display all available models"""
 
     table = Table(title="Available AI Models")
