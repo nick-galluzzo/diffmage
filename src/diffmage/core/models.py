@@ -20,6 +20,44 @@ class FileType(str, Enum):
     UNKNOWN = "unknown"
 
 
+class HunkLine(BaseModel):
+    """Represents a line in a hunk"""
+
+    line_type: str
+    is_removed: bool
+    is_added: bool
+    is_context: bool
+    content: str
+    old_line_number: Optional[int]
+    new_line_number: Optional[int]
+
+
+class DiffHunk(BaseModel):
+    """Represents a hunk in a diff"""
+
+    old_start_line: int
+    old_lines_count: int
+    new_start_line: int
+    new_lines_count: int
+    section_header: str
+    lines: list[HunkLine]
+
+    @property
+    def added_lines(self) -> list[str]:
+        """Get only the added lines content of the hunk"""
+        return [line.content for line in self.lines if line.is_added]
+
+    @property
+    def removed_lines(self) -> list[str]:
+        """Get only the removed lines content of the hunk"""
+        return [line.content for line in self.lines if line.is_removed]
+
+    @property
+    def context_lines(self) -> list[str]:
+        """Get only the context lines (unchanged) of the hunk"""
+        return [line.content for line in self.lines if line.is_context]
+
+
 class FileDiff(BaseModel):
     """Represents changes to a single file in a git commit"""
 
@@ -30,6 +68,60 @@ class FileDiff(BaseModel):
     is_binary: bool
     lines_added: int
     lines_removed: int
+    hunks: list[DiffHunk]
+
+    @property
+    def all_added_content(self) -> str:
+        """Get all added content across all hunks"""
+        lines = []
+        for hunk in self.hunks:
+            lines.extend(hunk.added_lines)
+        return "\n".join(lines)
+
+    @property
+    def all_removed_content(self) -> str:
+        """Get all removed content across all hunks"""
+        lines = []
+        for hunk in self.hunks:
+            lines.extend(hunk.removed_lines)
+        return "\n".join(lines)
+
+    @property
+    def get_ai_context(self) -> str:
+        """Get context format for AI commit message generation
+
+        Returns minimal git diff format focused on actual changes,
+        not git plubming metadata.
+        """
+
+        if not self.hunks:
+            return ""
+
+        lines = []
+
+        # Essential file info - what actually changed
+        old_path = self.old_path or "/dev/null"
+        new_path = self.new_path or "/dev/null"
+        lines.extend(
+            [
+                f"--- {old_path}",
+                f"+++ {new_path}",
+            ]
+        )
+
+        # Diff content
+        for hunk in self.hunks:
+            # Hunk header with line numbers
+            header = f"@@ -{hunk.old_start_line},{hunk.old_lines_count} +{hunk.new_start_line},{hunk.new_lines_count} @@"
+            if hunk.section_header:
+                header += f" {hunk.section_header}"
+            lines.append(header)
+
+            # Context, Removed, and Added lines
+            for line in hunk.lines:
+                lines.append(f"{line.line_type}{line.content}")
+
+        return "\n".join(lines)
 
 
 class CommitAnalysis(BaseModel):

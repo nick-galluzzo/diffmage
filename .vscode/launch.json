@@ -14,7 +14,6 @@
       "env": {
         "PYTHONPATH": "${workspaceFolder}/src"
       },
-      "args": ["--debug"]
     },
     {
       "name": "Python: Attach to Diffmage",
