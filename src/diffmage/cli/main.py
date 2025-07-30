@@ -6,9 +6,10 @@ from rich.table import Table
 from rich.panel import Panel
 import click
 
+from diffmage.cli.shared import app
 from diffmage.git.diff_parser import GitDiffParser
 
-app = typer.Typer(name="diffmage", help="AI-powered git commit analysis")
+
 console = Console()
 
 

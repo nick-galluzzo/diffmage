@@ -86,7 +86,6 @@ class FileDiff(BaseModel):
             lines.extend(hunk.removed_lines)
         return "\n".join(lines)
 
-    @property
     def get_ai_context(self) -> str:
         """Get context format for AI commit message generation
 
@@ -144,6 +143,7 @@ class CommitAnalysis(BaseModel):
             "files": [
                 {
                     "path": file_diff.new_path,
+                    "diff_content": file_diff.get_ai_context,
                     "type": file_diff.file_type.value,
                     "change_type": file_diff.change_type.value,
                     "lines_added": file_diff.lines_added,
@@ -158,3 +158,18 @@ class CommitAnalysis(BaseModel):
                 "timestamp": datetime.now().isoformat(),
             },
         }
+
+    def get_combined_diff(self) -> str:
+        """Get all file diffs combined into a single git diff format"""
+
+        if not self.files:
+            return ""
+
+        all_diffs = []
+        for file_diff in self.files:
+            if not file_diff.is_binary:
+                diff_content = file_diff.get_ai_context()
+                if diff_content:
+                    all_diffs.append(diff_content)
+
+        return "\n\n".join(all_diffs)
