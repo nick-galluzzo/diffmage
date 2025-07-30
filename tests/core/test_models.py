@@ -12,9 +12,11 @@ def test_models_basic_functionality():
         is_binary=False,
         lines_added=10,
         lines_removed=0,
+        hunks=[],
     )
     assert file_diff.new_path == "test.py"
     assert file_diff.change_type.value == "added"
+    assert len(file_diff.hunks) == 0
 
     # Test CommitAnalysis
     analysis = CommitAnalysis(

@@ -29,6 +29,7 @@ def sample_file_diff() -> FileDiff:
         is_binary=False,
         lines_added=1,
         lines_removed=0,
+        hunks=[],
     )
 
 
@@ -45,8 +46,10 @@ def test_convert_patched_file_added_file(parser: GitDiffParser) -> None:
     mock_patched_file.is_binary_file = False
     mock_patched_file.added = 10
     mock_patched_file.removed = 0
+    mock_patched_file.hunks = []
+    mock_patched_file.__iter__ = Mock(return_value=iter([]))
 
-    setattr(parser, "_detect_file_type", Mock(return_value=FileType.SOURCE_CODE))
+    parser.file_detector.detect_file_type = Mock(return_value=FileType.SOURCE_CODE)
 
     file_diff = parser._convert_patched_file(mock_patched_file)
 
@@ -73,8 +76,9 @@ def test_convert_patched_file_modified_file(parser: GitDiffParser) -> None:
     mock_patched_file.is_binary_file = False
     mock_patched_file.added = 5
     mock_patched_file.removed = 3
+    mock_patched_file.__iter__ = Mock(return_value=iter([]))
 
-    setattr(parser, "_detect_file_type", Mock(return_value=FileType.SOURCE_CODE))
+    parser.file_detector.detect_file_type = Mock(return_value=FileType.SOURCE_CODE)
 
     file_diff = parser._convert_patched_file(mock_patched_file)
 
@@ -101,8 +105,9 @@ def test_convert_patched_file_deleted_file(parser: GitDiffParser) -> None:
     mock_patched_file.is_binary_file = False
     mock_patched_file.added = 0
     mock_patched_file.removed = 8
+    mock_patched_file.__iter__ = Mock(return_value=iter([]))
 
-    setattr(parser, "_detect_file_type", Mock(return_value=FileType.SOURCE_CODE))
+    parser.file_detector.detect_file_type = Mock(return_value=FileType.SOURCE_CODE)
 
     file_diff = parser._convert_patched_file(mock_patched_file)
 
@@ -129,8 +134,9 @@ def test_convert_patched_file_renamed_file(parser: GitDiffParser) -> None:
     mock_patched_file.is_binary_file = False
     mock_patched_file.added = 2
     mock_patched_file.removed = 1
+    mock_patched_file.__iter__ = Mock(return_value=iter([]))
 
-    setattr(parser, "_detect_file_type", Mock(return_value=FileType.SOURCE_CODE))
+    parser.file_detector.detect_file_type = Mock(return_value=FileType.SOURCE_CODE)
 
     file_diff = parser._convert_patched_file(mock_patched_file)
 
