@@ -1,15 +1,12 @@
 import json
 import typer
 from diffmage.core.models import CommitAnalysis
-from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 import click
 
+from diffmage.cli.shared import app, console
 from diffmage.git.diff_parser import GitDiffParser
-
-app = typer.Typer(name="diffmage", help="AI-powered git commit analysis")
-console = Console()
 
 
 @app.command()
