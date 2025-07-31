@@ -4,6 +4,8 @@ AI prompt management for commit message generation.
 
 from typing import Optional
 
+# Generation prompts
+
 
 def get_commit_prompt(
     diff_content: str,
@@ -54,7 +56,7 @@ def get_commit_prompt(
     return prompt
 
 
-def get_system_prompt() -> str:
+def get_generation_system_prompt() -> str:
     """
     System prompt that provides consistent context for commit message generation.
     """
@@ -69,3 +71,143 @@ def get_system_prompt() -> str:
 
   Analyze code changes carefully and generate commit messages that accurately describe what was changed and why.
   """
+
+
+# Evaluation prompts
+
+
+def get_evaluation_system_prompt() -> str:
+    """
+    System prompt that provides consistent context for commit message evaluation.
+    """
+
+    return """
+  Your commit messages are:
+  - Descriptive but brief
+  - Written in imperative mood
+  - Focused on the purpose and impact of changes
+  """
+
+
+def get_evaluation_prompt(commit_message: str, git_diff: str) -> str:
+    """
+    Chain of Thought evaluation prompt with few-shot examples.
+    """
+
+    return f"""You are an expert code reviewer evaluating commit message quality using Chain-of-Though reasoning.
+
+
+    <EVALUATION_CRITERIA>
+    - WHAT (1-5): How accurately and completely does the message describe the actual code changes?
+        * 5 = All changes captured accurately
+        * 3 = Main changes described, some details missing
+        * 1 = Major changes omitted or misrepresented
+    - WHY (1-5): How clearly does it explain the purpose/reasoning/impact of the changes?
+    - Scale: 1=Very Poor, 2=Poor, 3=Average, 4=Good, 5=Excellent
+    </EVALUATION_CRITERIA>
+
+    <EXAMPLES>
+    Example 1:
+    COMMIT: "fix bug"
+
+    DIFF:
+        --- a/src/auth.py
+    +++ b/src/auth.py
+    @@ -15,1 +15,2 @@ def authenticate_user(username, password):
+        user = get_user(username)
+    -    return user.validate_password(password)
+    +    if user:
+    +        return user.validate_password(password)
+
+    ANALYSIS:
+    - WHAT: 2/5 - Too vague, doesn't specify what bug or where
+    - WHY: 1/5 - No explanation of impact or reasoning
+
+    Example 2:
+    COMMIT: "feat(auth): add JWT authentication to secure API endpoints"
+    DIFF:
+    --- a/src/middleware/auth.py
+    +++ b/src/middleware/auth.py
+    @@ -0,0 +1,12 @@
+    +import jwt
+    +from flask import request, jsonify
+    +
+    +def require_auth(f):
+    +    def decorated(*args, **kwargs):
+    +        token = request.headers.get('Authorization')
+    +        if not token:
+    +            return jsonify({{'error': 'No token provided'}}), 401
+    +        try:
+    +            jwt.decode(token, app.config['SECRET_KEY'])
+    +        except jwt.InvalidTokenError:
+    +            return jsonify({{'error': 'Invalid token'}}), 401
+    +        return f(*args, **kwargs)
+    +    return decorated
+
+    ANALYSIS:
+    - WHAT: 5/5 - Precisely describes the authentication system addition
+    - WHY: 4/5 - Clear security purpose, could detail specific benefits
+
+
+    Example 3:
+    COMMIT: "refactor: extract validation logic into UserService class"
+    DIFF:
+    --- a/src/controllers/user_controller.py
+    +++ b/src/controllers/user_controller.py
+    @@ -8,6 +8,4 @@ class UserController:
+        def create_user(self, data):
+    -        if not data.get('email'):
+    -            raise ValueError('Email required')
+    -        if len(data.get('password', '')) < 8:
+    -            raise ValueError('Password too short')
+    +        UserService.validate_user_data(data)
+            return User.create(data)
+    --- a/src/services/user_service.py
+    +++ b/src/services/user_service.py
+    @@ -0,0 +1,8 @@
+    +class UserService:
+    +    @staticmethod
+    +    def validate_user_data(data):
+    +        if not data.get('email'):
+    +            raise ValueError('Email required')
+    +        if len(data.get('password', '')) < 8:
+    +            raise ValueError('Password too short')
+
+    ANALYSIS:
+    - WHAT: 5/5 - Exact description of the refactoring action
+    - WHY: 4/5 - Good architectural reasoning (separation of concerns)
+    </EXAMPLES>
+
+    NOW EVALUATE THE FOLLOWING COMMIT MESSAGE:
+    <COMMIT_MESSAGE>
+    {commit_message}
+    </COMMIT_MESSAGE>
+
+    <GIT_DIFF>
+    {git_diff}
+    </GIT_DIFF>
+
+    <CHAIN-OF-THOUGHT_EVALUATION>
+    1. What changes do I see in the diff? Analyze ALL of them.
+    2. How accurately and completelydoes the commit message describe these changes? (WHAT score)
+    3. What purpose/goal do these changes serve?
+    4. How clearly does the message explain the reasoning? (WHY score)
+    5. Overall assessment combining both dimensions
+    </CHAIN-OF-THOUGHT_EVALUATION>
+
+    <REASONING_INSTRUCTIONS>
+    - Focus on the commit message effectiveness, not implementation details
+    - Evaluate clarity, completeness, and usefulness
+    - Analyze the message quality - don't just repeat its contents
+    - Be specific about what makes it good or bad
+    - Ensure to define and mention the what and the why
+    - Keep it concise (3-5 sentences)
+    </REASONING_INSTRUCTIONS>
+
+    REQUIRED JSON RESPONSE:
+    {{
+        "what_score": <1-5>,
+        "why_score": <1-5>,
+        "reasoning": "<reasoning>",
+        "confidence": <0.0-1.0>
+    }}"""

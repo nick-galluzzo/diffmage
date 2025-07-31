@@ -4,15 +4,6 @@ Data models for commit message evaluation system
 
 from typing import Dict, Any
 from pydantic import BaseModel, Field
-from enum import Enum
-
-
-class EvaluationDimension(str, Enum):
-    """Evaluation dimensions for commit message quality assessment"""
-
-    WHAT = "what"
-    WHY = "why"
-    UNIFIED = "unified"
 
 
 class EvaluationResult(BaseModel):
@@ -22,13 +13,15 @@ class EvaluationResult(BaseModel):
         ge=1.0, le=5.0, description="Accuracy of change description"
     )
     why_score: float = Field(ge=1.0, le=5.0, description="Clarity of rationale")
-    overall_score: float = Field(ge=1.0, le=5.0, description="Combined assessment")
     reasoning: str = Field(min_length=10, description="Chain-of-thought explanation")
     confidence: float = Field(
         ge=0.0, le=1.0, description="LLM confidence in evaluation"
     )
     model_used: str = Field(description="Model used for evaluation")
-    dimension: EvaluationDimension = EvaluationDimension.UNIFIED
+
+    @property
+    def overall_score(self) -> float:
+        return round((self.what_score + self.why_score) / 2, 2)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization"""
@@ -41,7 +34,6 @@ class EvaluationResult(BaseModel):
             "reasoning": self.reasoning,
             "confidence": self.confidence,
             "model": self.model_used,
-            "dimension": self.dimension.value,
         }
 
     @property

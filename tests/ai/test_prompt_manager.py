@@ -1,15 +1,114 @@
-from diffmage.ai.prompt_manager import get_commit_prompt, get_system_prompt
+from diffmage.ai.prompt_manager import (
+    get_commit_prompt,
+    get_generation_system_prompt,
+    get_evaluation_system_prompt,
+    get_evaluation_prompt,
+)
 
 
-def test_get_system_prompt():
-    """Test that system prompt is properly formatted and contains expected content."""
-    system_prompt = get_system_prompt()
+def test_get_generation_system_prompt():
+    """Test that generation system prompt is properly formatted and contains expected content."""
+    system_prompt = get_generation_system_prompt()
 
     assert isinstance(system_prompt, str)
     assert len(system_prompt) > 0
     assert "commit messages" in system_prompt.lower()
     assert "descriptive" in system_prompt.lower()
     assert "imperative mood" in system_prompt.lower()
+
+
+def test_get_evaluation_system_prompt():
+    """Test that evaluation system prompt is properly formatted and contains expected content."""
+    system_prompt = get_evaluation_system_prompt()
+
+    assert isinstance(system_prompt, str)
+    assert len(system_prompt) > 0
+    assert "commit messages are:" in system_prompt.lower()
+    assert "descriptive" in system_prompt.lower()
+    assert "imperative mood" in system_prompt.lower()
+    assert "purpose and impact" in system_prompt.lower()
+
+
+def test_get_evaluation_prompt_basic():
+    """Test basic evaluation prompt generation."""
+    commit_message = "feat: add user authentication"
+    git_diff = "--- a/auth.py\n+++ b/auth.py\n@@ -1 +1 @@\n+def login(): pass"
+
+    prompt = get_evaluation_prompt(commit_message, git_diff)
+
+    assert isinstance(prompt, str)
+    assert len(prompt) > 0
+    assert commit_message in prompt
+    assert git_diff in prompt
+    assert "EVALUATION_CRITERIA" in prompt
+    assert "WHAT (1-5)" in prompt
+    assert "WHY (1-5)" in prompt
+    assert "EXAMPLES" in prompt
+    assert "CHAIN-OF-THOUGHT EVALUATION" in prompt
+    assert "JSON RESPONSE" in prompt
+
+
+def test_get_evaluation_prompt_with_complex_message():
+    """Test evaluation prompt with complex commit message."""
+    commit_message = "refactor(auth): extract validation logic into UserService class and add comprehensive error handling"
+    git_diff = "--- a/src/controllers/user_controller.py\n+++ b/src/controllers/user_controller.py\n@@ -8,6 +8,4 @@ class UserController:\n        def create_user(self, data):\n-        if not data.get('email'):\n-            raise ValueError('Email required')\n-        if len(data.get('password', '')) < 8:\n-            raise ValueError('Password too short')\n+        UserService.validate_user_data(data)\n            return User.create(data)"
+
+    prompt = get_evaluation_prompt(commit_message, git_diff)
+
+    assert commit_message in prompt
+    assert git_diff in prompt
+    assert "EVALUATION_CRITERIA" in prompt
+
+
+def test_get_evaluation_prompt_empty_inputs():
+    """Test evaluation prompt with empty inputs."""
+    commit_message = ""
+    git_diff = ""
+
+    prompt = get_evaluation_prompt(commit_message, git_diff)
+
+    assert isinstance(prompt, str)
+    assert len(prompt) > 0
+    assert "<COMMIT_MESSAGE>" in prompt
+    assert "</COMMIT_MESSAGE>" in prompt
+    assert "<GIT_DIFF>" in prompt
+    assert "</GIT_DIFF>" in prompt
+
+
+def test_get_evaluation_prompt_contains_required_sections():
+    """Test that evaluation prompt contains all required sections."""
+    commit_message = "test: simple commit"
+    git_diff = "--- a/test.py\n+++ b/test.py\n@@ -1 +1 @@\n+print('hello')"
+
+    prompt = get_evaluation_prompt(commit_message, git_diff)
+
+    # Check for required sections
+    required_sections = [
+        "EVALUATION_CRITERIA",
+        "WHAT (1-5)",
+        "WHY (1-5)",
+        "EXAMPLES",
+        "CHAIN-OF-THOUGHT EVALUATION",
+        "JSON RESPONSE",
+    ]
+
+    for section in required_sections:
+        assert section in prompt, f"Missing required section: {section}"
+
+
+def test_get_evaluation_prompt_json_format():
+    """Test that evaluation prompt specifies correct JSON format."""
+    commit_message = "feat: add feature"
+    git_diff = "--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n+code"
+
+    prompt = get_evaluation_prompt(commit_message, git_diff)
+
+    # Check for JSON format specification
+    assert '"what_score"' in prompt
+    assert '"why_score"' in prompt
+    assert '"reasoning"' in prompt
+    assert '"confidence"' in prompt
+    assert "<1-5>" in prompt
 
 
 def test_get_commit_prompt_basic():
