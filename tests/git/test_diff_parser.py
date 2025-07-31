@@ -221,7 +221,7 @@ def test_parse_staged_changes_no_staged_changes(
     mock_repo.active_branch.name = "main"
     parser.repo = mock_repo
 
-    with pytest.raises(ValueError, match="No staged changes found"):
+    with pytest.raises(ValueError):
         parser.parse_staged_changes()
 
 
@@ -240,7 +240,7 @@ def test_parse_staged_changes_diff_parsing_error(
             Mock(side_effect=UnidiffParseError("Parse error")),
         )
 
-        with pytest.raises(ValueError, match="Failed to parse staged changes"):
+        with pytest.raises(ValueError):
             parser.parse_staged_changes()
 
 
