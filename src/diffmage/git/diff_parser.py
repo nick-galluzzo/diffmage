@@ -58,18 +58,22 @@ class GitDiffParser:
 
         return analysis, commit_message
 
-    def _get_commit_diff_text(self, commit_hash: str, commit) -> str:
+    def _get_commit_diff_text(self, commit_hash: str, commit: git.Commit) -> str:
         """Get diff text for a specific commit"""
         try:
             # Get diff between previous commit and specified commit
-            return self.repo.git.diff(f"{commit_hash}~1", commit_hash, "--no-color")
+            return str(
+                self.repo.git.diff(f"{commit_hash}~1", commit_hash, "--no-color")
+            )
         except git.GitCommandError:
             # Probably initial commit - compare to empty tree
             if len(commit.parents) == 0:
-                return self.repo.git.diff(
-                    "4b825dc642cb6eb9a060e54bf8d69288fbee4904",
-                    commit_hash,
-                    "--no-color",
+                return str(
+                    self.repo.git.diff(
+                        "4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+                        commit_hash,
+                        "--no-color",
+                    )
                 )
             else:
                 raise
