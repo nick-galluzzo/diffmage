@@ -5,7 +5,6 @@ from diffmage.ai.models import SupportedModels, get_default_model, get_model_by_
 from diffmage.cli.shared import app, console
 from diffmage.ai.client import AIClient
 from diffmage.git.diff_parser import GitDiffParser
-from diffmage.evaluation.llm_evaluator import LLMEvaluator
 
 
 @app.command()
@@ -38,13 +37,7 @@ def generate(
     analysis: CommitAnalysis = parser.parse_staged_changes()
     commit_message = client.generate_commit_message(analysis)
 
-    # Evaluate commit message
-    git_diff = analysis.get_combined_diff()
-    evaluator = LLMEvaluator(model_name=model_config.name)
-    evaluation_result = evaluator.evaluate_commit_message(commit_message, git_diff)
-
     console.print(f"[green]Commit message:[/green] {commit_message}")
-    console.print(f"[cyan]Evaluation result:[/cyan] {evaluation_result.to_dict()}")
 
 
 def _display_available_models() -> None:

@@ -144,8 +144,14 @@ def get_evaluation_prompt(commit_message: str, git_diff: str) -> str:
     +        return f(*args, **kwargs)
     +    return decorated
 
+    + def add_items_to_cart(cart, items):
+    +    # adds items to the cart
+    +    if not items:
+    +        raise ValueError('No items to add')
+    +    cart.add_items(items)
+
     ANALYSIS:
-    - WHAT: 5/5 - Precisely describes the authentication system addition
+    - WHAT: 3/5 - The commit message is missing important added functionality (doesn't mention the add_items_to_cart function)
     - WHY: 4/5 - Clear security purpose, could detail specific benefits
 
 

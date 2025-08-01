@@ -7,7 +7,6 @@ import click
 
 from diffmage.cli.shared import app, console
 from diffmage.git.diff_parser import GitDiffParser
-# Import generate module to register its command
 
 
 @app.command()
