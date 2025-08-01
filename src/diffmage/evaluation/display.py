@@ -48,7 +48,7 @@ class EvaluationDisplayFormatter:
             rating, style=f"bold {QualityRater.get_rating_color(result.overall_score)}"
         )
         quality_text.append(
-            f" ({result.overall_score:.2f}/5)",
+            f" ({result.overall_score:.1f}/5)",
             style=QualityRater.get_rating_color(result.overall_score),
         )
 
@@ -66,7 +66,7 @@ class EvaluationDisplayFormatter:
         what_rating = QualityRater.get_quality_level(result.what_score)
         table.add_row(
             "WHAT",
-            f"[{what_color}]{result.what_score:.2f}[/{what_color}]",
+            f"[{what_color}]{result.what_score:.1f}[/{what_color}]",
             f"[{what_color}]{what_rating}[/{what_color}]",
         )
 
@@ -75,7 +75,7 @@ class EvaluationDisplayFormatter:
         why_rating = QualityRater.get_quality_level(result.why_score)
         table.add_row(
             "WHY",
-            f"[{why_color}]{result.why_score:.2f}[/{why_color}]",
+            f"[{why_color}]{result.why_score:.1f}[/{why_color}]",
             f"[{why_color}]{why_rating}[/{why_color}]",
         )
 
@@ -94,5 +94,5 @@ class EvaluationDisplayFormatter:
     def _display_metadata(self, result: EvaluationResult) -> None:
         """Display subtle metadata"""
         self.console.print(
-            f"\n[dim]Confidence: {result.confidence:.2f} • Model: {result.model_used}[/dim]"
+            f"\n[dim]Confidence: {result.confidence:.1f} • Model: {result.model_used}[/dim]"
         )
