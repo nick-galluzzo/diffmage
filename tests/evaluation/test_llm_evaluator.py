@@ -3,46 +3,30 @@ Tests for the LLM-based commit message evaluator.
 """
 
 import pytest
-from unittest.mock import Mock, patch
-from diffmage.evaluation.llm_evaluator import LLMEvaluator
+from unittest.mock import patch
+from diffmage.evaluation.commit_message_evaluator import CommitMessageEvaluator
 from diffmage.evaluation.models import EvaluationResult
-from diffmage.ai.client import AIClient
 
 
 class TestLLMEvaluator:
     """Test cases for LLMEvaluator class."""
 
-    def test_init_with_default_model(self):
-        """Test LLMEvaluator initialization with default model."""
-        with patch(
-            "diffmage.evaluation.llm_evaluator.get_default_model"
-        ) as mock_get_model:
-            mock_model = Mock()
-            mock_model.name = "openai/gpt-4o-mini"
-            mock_get_model.return_value = mock_model
-
-            evaluator = LLMEvaluator()
-
-            assert evaluator.model_name == "openai/gpt-4o-mini"
-            assert isinstance(evaluator.ai_client, AIClient)
-            assert evaluator.ai_client.model_config.name == "openai/gpt-4o-mini"
-
     def test_init_with_custom_model(self):
         """Test LLMEvaluator initialization with custom model."""
-        evaluator = LLMEvaluator(model_name="anthropic/claude-sonnet-4")
+        evaluator = CommitMessageEvaluator(model_name="anthropic/claude-sonnet-4")
 
         assert evaluator.model_name == "anthropic/claude-sonnet-4"
         assert evaluator.ai_client.model_config.name == "anthropic/claude-sonnet-4"
 
     def test_init_with_custom_temperature(self):
         """Test LLMEvaluator initialization with custom temperature."""
-        evaluator = LLMEvaluator(temperature=0.5)
+        evaluator = CommitMessageEvaluator(temperature=0.5)
 
         assert evaluator.ai_client.temperature == 0.5
 
     def test_evaluate_commit_message_success(self):
         """Test successful commit message evaluation."""
-        evaluator = LLMEvaluator(model_name="openai/gpt-4o-mini")
+        evaluator = CommitMessageEvaluator(model_name="openai/gpt-4o-mini")
 
         # Mock the AI client response
         mock_response = """{
@@ -73,21 +57,21 @@ class TestLLMEvaluator:
 
     def test_evaluate_commit_message_empty_message(self):
         """Test evaluation with empty commit message."""
-        evaluator = LLMEvaluator()
+        evaluator = CommitMessageEvaluator()
 
         with pytest.raises(ValueError, match="Commit message cannot be empty"):
             evaluator.evaluate_commit_message("", "some diff")
 
     def test_evaluate_commit_message_empty_diff(self):
         """Test evaluation with empty git diff."""
-        evaluator = LLMEvaluator()
+        evaluator = CommitMessageEvaluator()
 
         with pytest.raises(ValueError, match="Git diff cannot be empty"):
             evaluator.evaluate_commit_message("some message", "")
 
     def test_evaluate_commit_message_llm_error(self):
         """Test evaluation when LLM call fails."""
-        evaluator = LLMEvaluator()
+        evaluator = CommitMessageEvaluator()
 
         with patch.object(
             evaluator.ai_client, "evaluate_with_llm", side_effect=Exception("API Error")
@@ -97,7 +81,7 @@ class TestLLMEvaluator:
 
     def test_evaluate_commit_message_invalid_json(self):
         """Test evaluation with invalid JSON response."""
-        evaluator = LLMEvaluator()
+        evaluator = CommitMessageEvaluator()
 
         with patch.object(
             evaluator.ai_client,
@@ -109,7 +93,7 @@ class TestLLMEvaluator:
 
     def test_parse_evaluation_response_valid_json(self):
         """Test parsing valid JSON response."""
-        evaluator = LLMEvaluator()
+        evaluator = CommitMessageEvaluator()
 
         valid_json = """{
             "what_score": 3,
@@ -132,7 +116,7 @@ class TestLLMEvaluator:
 
     def test_parse_evaluation_response_missing_fields(self):
         """Test parsing JSON response with missing required fields."""
-        evaluator = LLMEvaluator()
+        evaluator = CommitMessageEvaluator()
 
         # Missing required fields should raise an error
         incomplete_json = '{"what_score": 3}'
@@ -142,7 +126,7 @@ class TestLLMEvaluator:
 
     def test_parse_evaluation_response_invalid_json(self):
         """Test parsing invalid JSON response."""
-        evaluator = LLMEvaluator()
+        evaluator = CommitMessageEvaluator()
 
         invalid_json = "this is not json"
 

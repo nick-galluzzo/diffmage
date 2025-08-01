@@ -1,7 +1,7 @@
 from typing import Optional
 from diffmage.evaluation.models import EvaluationResult
 from diffmage.ai.models import get_default_model
-from diffmage.evaluation.llm_evaluator import LLMEvaluator
+from diffmage.evaluation.commit_message_evaluator import CommitMessageEvaluator
 from diffmage.git.diff_parser import GitDiffParser
 
 
@@ -10,7 +10,7 @@ class EvaluationService:
 
     def __init__(self, model_name: Optional[str] = None) -> None:
         self.model_name = model_name or get_default_model().name
-        self.evaluator = LLMEvaluator(model_name=self.model_name)
+        self.evaluator = CommitMessageEvaluator(model_name=self.model_name)
 
     def evaluate_staged_changes(
         self, message: str, repo_path: str = "."

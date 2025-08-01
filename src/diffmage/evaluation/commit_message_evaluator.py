@@ -9,13 +9,13 @@ https://arxiv.org/pdf/2507.10906
 import json
 
 from diffmage.ai.prompt_manager import get_evaluation_prompt
-from .models import EvaluationResult
+from diffmage.evaluation.models import EvaluationResult
 from diffmage.ai.models import get_default_model
 from diffmage.ai.client import AIClient
 from typing import Optional
 
 
-class LLMEvaluator:
+class CommitMessageEvaluator:
     """
     LLM based commit message quality evaluator using Chain of Thought Reasoning
 
