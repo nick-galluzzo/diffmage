@@ -99,7 +99,7 @@ def get_evaluation_prompt(commit_message: str, git_diff: str) -> str:
 
     <EVALUATION_CRITERIA>
     - WHAT (1-5): How accurately and completely does the message describe the actual code changes?
-        * 5 = All changes captured accurately
+        * 5 = All changes captured accurately and completely
         * 3 = Main changes described, some details missing
         * 1 = Major changes omitted or misrepresented
     - WHY (1-5): How clearly does it explain the purpose/reasoning/impact of the changes?
@@ -193,13 +193,13 @@ def get_evaluation_prompt(commit_message: str, git_diff: str) -> str:
     {git_diff}
     </GIT_DIFF>
 
-    <CHAIN-OF-THOUGHT_EVALUATION>
+    <CHAIN-OF-THOUGHT EVALUATION>
     1. What changes do I see in the diff? Analyze ALL of them.
-    2. How accurately and completelydoes the commit message describe these changes? (WHAT score)
+    2. How accurately and completely does the commit message describe these changes? (WHAT score)
     3. What purpose/goal do these changes serve?
     4. How clearly does the message explain the reasoning? (WHY score)
     5. Overall assessment combining both dimensions
-    </CHAIN-OF-THOUGHT_EVALUATION>
+    </CHAIN-OF-THOUGHT EVALUATION>
 
     <REASONING_INSTRUCTIONS>
     - Focus on the commit message effectiveness, not implementation details

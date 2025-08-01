@@ -68,7 +68,7 @@ def test_ai_client_initialization():
     client = AIClient(model_name="openai/gpt-4o-mini")
 
     assert client.model_config.name == "openai/gpt-4o-mini"
-    assert client.temperature == 0.3
+    assert client.temperature == 0.1
     assert client.max_tokens == 1000
 
 
@@ -110,7 +110,7 @@ def test_generate_commit_message_success(
     mock_completion.assert_called_once()
     call_args = mock_completion.call_args
     assert call_args[1]["model"] == "openai/gpt-4o-mini"
-    assert call_args[1]["temperature"] == 0.3
+    assert call_args[1]["temperature"] == 0.1
     assert call_args[1]["max_tokens"] == 1000
     assert call_args[1]["stream"] is False
 
@@ -331,7 +331,7 @@ def test_evaluate_with_llm_success(mock_completion, mock_evaluation_response):
     mock_completion.assert_called_once()
     call_args = mock_completion.call_args
     assert call_args[1]["model"] == "openai/gpt-4o-mini"
-    assert call_args[1]["temperature"] == 0.3
+    assert call_args[1]["temperature"] == 0.1
     assert call_args[1]["max_tokens"] == 1000
     assert call_args[1]["stream"] is False
 

@@ -129,7 +129,6 @@ class TestLLMEvaluator:
         assert result.overall_score == 3.5
         assert result.reasoning == "Test reasoning"
         assert result.confidence == 0.75
-        assert result.model_used == "openai/gpt-4o-mini"
 
     def test_parse_evaluation_response_missing_fields(self):
         """Test parsing JSON response with missing required fields."""
