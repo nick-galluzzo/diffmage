@@ -4,11 +4,9 @@ from litellm.litellm_core_utils.streaming_handler import CustomStreamWrapper
 from typing import Union
 from diffmage.ai.models import get_model_by_name
 from diffmage.ai.prompt_manager import (
-    get_commit_prompt,
     get_generation_system_prompt,
     get_evaluation_system_prompt,
 )
-from diffmage.core.models import CommitAnalysis
 
 
 class AIClient:
@@ -27,27 +25,15 @@ class AIClient:
         self.temperature = temperature
         self.max_tokens = max_tokens
 
-    def generate_commit_message(self, analysis: CommitAnalysis) -> str:
+    def generate_commit_message(self, commit_prompt: str) -> str:
         """Generate commit message from git analysis"""
-
-        diff_ai_context = analysis.get_combined_diff()
-
-        if not diff_ai_context:
-            raise ValueError("No changes found to generate commit message for")
-
-        prompt = get_commit_prompt(
-            diff_content=diff_ai_context,
-            file_count=analysis.total_files,
-            lines_added=analysis.total_lines_added,
-            lines_removed=analysis.total_lines_removed,
-        )
 
         try:
             response: Union[ModelResponse, CustomStreamWrapper] = completion(
                 model=self.model_config.name,
                 messages=[
                     {"role": "system", "content": get_generation_system_prompt()},
-                    {"role": "user", "content": prompt},
+                    {"role": "user", "content": commit_prompt},
                 ],
                 temperature=self.temperature,
                 max_tokens=self.max_tokens,

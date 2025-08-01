@@ -2,7 +2,14 @@ import pytest
 from unittest.mock import Mock, patch
 from typer.testing import CliRunner
 from diffmage.cli.shared import app
-from diffmage.core.models import CommitAnalysis, FileDiff, ChangeType, FileType
+from diffmage.core.models import (
+    CommitAnalysis,
+    FileDiff,
+    ChangeType,
+    FileType,
+    HunkLine,
+    DiffHunk,
+)
 
 
 @pytest.fixture
@@ -14,6 +21,44 @@ def runner():
 @pytest.fixture
 def mock_commit_analysis():
     """Create a mock CommitAnalysis for testing."""
+    # Create a mock hunk with some content
+    hunk_line1 = HunkLine(
+        line_type=" ",
+        is_removed=False,
+        is_added=False,
+        is_context=True,
+        content="def example_function():",
+        old_line_number=1,
+        new_line_number=1,
+    )
+    hunk_line2 = HunkLine(
+        line_type="+",
+        is_removed=False,
+        is_added=True,
+        is_context=False,
+        content="    print('Hello, world!')",
+        old_line_number=None,
+        new_line_number=2,
+    )
+    hunk_line3 = HunkLine(
+        line_type="-",
+        is_removed=True,
+        is_added=False,
+        is_context=False,
+        content="    print('Goodbye, world!')",
+        old_line_number=2,
+        new_line_number=None,
+    )
+
+    hunk = DiffHunk(
+        old_start_line=1,
+        old_lines_count=2,
+        new_start_line=1,
+        new_lines_count=2,
+        section_header="",
+        lines=[hunk_line1, hunk_line2, hunk_line3],
+    )
+
     file_diff = FileDiff(
         old_path=None,
         new_path="test.py",
@@ -22,7 +67,7 @@ def mock_commit_analysis():
         is_binary=False,
         lines_added=5,
         lines_removed=2,
-        hunks=[],
+        hunks=[hunk],
     )
 
     return CommitAnalysis(
@@ -59,7 +104,9 @@ def test_generate_command_success(
     # Verify mocks were called correctly
     mock_git_parser_class.assert_called_once_with(repo_path=".")
     mock_parser.parse_staged_changes.assert_called_once()
-    mock_client.generate_commit_message.assert_called_once_with(mock_commit_analysis)
+    mock_client.generate_commit_message.assert_called_once()
+    call_args = mock_client.generate_commit_message.call_args
+    assert isinstance(call_args[0][0], str)
 
 
 @patch("diffmage.cli.generate.GitDiffParser")
