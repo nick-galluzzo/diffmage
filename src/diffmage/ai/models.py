@@ -99,4 +99,4 @@ def get_model_by_name(name: str) -> ModelConfig:
 
 def get_default_model() -> ModelConfig:
     """Get default model"""
-    return SupportedModels.QWEN_3_CODER_FREE.value
+    return SupportedModels.QWEN_3_CODER.value

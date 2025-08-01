@@ -1,29 +1,16 @@
 {
-  // Use IntelliSense to learn about possible attributes.
-  // Hover to view descriptions of existing attributes.
-  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Python: Debug Diffmage CLI",
+      "name": "Debug Diffmage CLI",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceFolder}/src/diffmage/cli/main.py",
+      "program": "${workspaceFolder}/debug_runner.py",
       "console": "integratedTerminal",
       "justMyCode": false,
       "env": {
         "PYTHONPATH": "${workspaceFolder}/src"
-      },
-    },
-    {
-      "name": "Python: Attach to Diffmage",
-      "type": "debugpy",
-      "request": "attach",
-      "connect": {
-        "host": "localhost",
-        "port": 5678
-      },
-      "justMyCode": false
+      }
     }
   ]
 }

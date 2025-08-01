@@ -68,7 +68,7 @@ def test_ai_client_initialization():
     client = AIClient(model_name="openai/gpt-4o-mini")
 
     assert client.model_config.name == "openai/gpt-4o-mini"
-    assert client.temperature == 0.3
+    assert client.temperature == 0.1
     assert client.max_tokens == 1000
 
 
@@ -92,16 +92,15 @@ def test_ai_client_initialization_uses_default_model():
 
 
 @patch("diffmage.ai.client.completion")
-def test_generate_commit_message_success(
-    mock_completion, mock_commit_analysis, mock_ai_response
-):
+def test_generate_commit_message_success(mock_completion, mock_ai_response):
     """Test successful commit message generation."""
     # Setup mock
     mock_completion.return_value = mock_ai_response
 
     # Create client and generate message
     client = AIClient(model_name="openai/gpt-4o-mini")
-    result = client.generate_commit_message(mock_commit_analysis)
+    prompt = "test prompt"
+    result = client.generate_commit_message(prompt)
 
     # Verify result
     assert result == "feat: add new feature"
@@ -110,7 +109,7 @@ def test_generate_commit_message_success(
     mock_completion.assert_called_once()
     call_args = mock_completion.call_args
     assert call_args[1]["model"] == "openai/gpt-4o-mini"
-    assert call_args[1]["temperature"] == 0.3
+    assert call_args[1]["temperature"] == 0.1
     assert call_args[1]["max_tokens"] == 1000
     assert call_args[1]["stream"] is False
 
@@ -119,30 +118,6 @@ def test_generate_commit_message_success(
     assert len(messages) == 2
     assert messages[0]["role"] == "system"
     assert messages[1]["role"] == "user"
-    assert "test.py" in messages[1]["content"]
-
-
-@patch("diffmage.ai.client.completion")
-def test_generate_commit_message_empty_diff(mock_completion, mock_commit_analysis):
-    """Test commit message generation with empty diff."""
-    # Create analysis with empty diff
-    empty_analysis = CommitAnalysis(
-        files=[],
-        total_files=0,
-        total_lines_added=0,
-        total_lines_removed=0,
-        branch_name="main",
-    )
-
-    client = AIClient(model_name="openai/gpt-4o-mini")
-
-    with pytest.raises(
-        ValueError, match="No changes found to generate commit message for"
-    ):
-        client.generate_commit_message(empty_analysis)
-
-    # Verify completion was not called
-    mock_completion.assert_not_called()
 
 
 @patch("diffmage.ai.client.completion")
@@ -202,92 +177,109 @@ def test_generate_commit_message_strips_whitespace(
     assert result == "feat: add new feature"
 
 
+@pytest.fixture
+def mock_evaluation_response():
+    """Create a mock evaluation response."""
+    mock_response = Mock()
+    mock_response.choices = [Mock()]
+    mock_response.choices[0].message.content = """{
+        "what_score": 4,
+        "why_score": 5,
+        "overall_score": 4.5,
+        "reasoning": "The commit message accurately describes the changes and clearly explains the purpose.",
+        "confidence": 0.9,
+        "model_used": "openai/gpt-4o-mini",
+        "dimension": "unified"
+    }"""
+    return mock_response
+
+
 @patch("diffmage.ai.client.completion")
-def test_generate_commit_message_multiple_files(mock_completion, mock_ai_response):
-    """Test commit message generation with multiple files."""
-    # Create hunk for first file
-    hunk_line1 = HunkLine(
-        line_type="+",
-        is_removed=False,
-        is_added=True,
-        is_context=False,
-        content="def new_function1():",
-        old_line_number=None,
-        new_line_number=1,
-    )
-
-    hunk1 = DiffHunk(
-        old_start_line=1,
-        old_lines_count=0,
-        new_start_line=1,
-        new_lines_count=1,
-        section_header="",
-        lines=[hunk_line1],
-    )
-
-    # Create hunk for second file
-    hunk_line2 = HunkLine(
-        line_type="+",
-        is_removed=False,
-        is_added=True,
-        is_context=False,
-        content="def new_function2():",
-        old_line_number=None,
-        new_line_number=1,
-    )
-
-    hunk2 = DiffHunk(
-        old_start_line=1,
-        old_lines_count=0,
-        new_start_line=1,
-        new_lines_count=1,
-        section_header="",
-        lines=[hunk_line2],
-    )
-
-    # Create analysis with multiple files
-    file_diff1 = FileDiff(
-        old_path=None,
-        new_path="test1.py",
-        change_type=ChangeType.ADDED,
-        file_type=FileType.SOURCE_CODE,
-        is_binary=False,
-        lines_added=1,
-        lines_removed=0,
-        hunks=[hunk1],
-    )
-
-    file_diff2 = FileDiff(
-        old_path="old_test.py",
-        new_path="new_test.py",
-        change_type=ChangeType.RENAMED,
-        file_type=FileType.SOURCE_CODE,
-        is_binary=False,
-        lines_added=1,
-        lines_removed=0,
-        hunks=[hunk2],
-    )
-
-    multi_file_analysis = CommitAnalysis(
-        files=[file_diff1, file_diff2],
-        total_files=2,
-        total_lines_added=2,
-        total_lines_removed=0,
-        branch_name="main",
-    )
-
+def test_evaluate_with_llm_success(mock_completion, mock_evaluation_response):
+    """Test successful commit message evaluation."""
     # Setup mock
-    mock_completion.return_value = mock_ai_response
+    mock_completion.return_value = mock_evaluation_response
 
+    # Create client and evaluate
     client = AIClient(model_name="openai/gpt-4o-mini")
-    result = client.generate_commit_message(multi_file_analysis)
+    evaluation_prompt = "test evaluation prompt"
+    result = client.evaluate_with_llm(evaluation_prompt)
 
     # Verify result
-    assert result == "feat: add new feature"
+    assert '"what_score": 4' in result
+    assert '"why_score": 5' in result
+    assert "reasoning" in result
+    assert "confidence" in result
 
-    # Verify completion was called with context about multiple files
+    # Verify completion was called with correct parameters
     mock_completion.assert_called_once()
     call_args = mock_completion.call_args
-    user_message = call_args[1]["messages"][1]["content"]
-    assert "2 files" in user_message
-    assert "2 lines added, 0 lines removed" in user_message
+    assert call_args[1]["model"] == "openai/gpt-4o-mini"
+    assert call_args[1]["temperature"] == 0.1
+    assert call_args[1]["max_tokens"] == 1000
+    assert call_args[1]["stream"] is False
+
+    # Verify messages structure
+    messages = call_args[1]["messages"]
+    assert len(messages) == 2
+    assert messages[0]["role"] == "system"
+    assert messages[1]["role"] == "user"
+    assert evaluation_prompt in messages[1]["content"]
+
+
+@patch("diffmage.ai.client.completion")
+def test_evaluate_with_llm_ai_error(mock_completion):
+    """Test commit message evaluation when AI service fails."""
+    # Setup mock to raise exception
+    mock_completion.side_effect = Exception("AI service unavailable")
+
+    client = AIClient(model_name="openai/gpt-4o-mini")
+    evaluation_prompt = "test evaluation prompt"
+
+    with pytest.raises(
+        ValueError, match="Error evaluating commit message: AI service unavailable"
+    ):
+        client.evaluate_with_llm(evaluation_prompt)
+
+
+@patch("diffmage.ai.client.completion")
+def test_evaluate_with_llm_strips_whitespace(mock_completion):
+    """Test that evaluation response has whitespace stripped."""
+    # Setup mock with whitespace
+    mock_response = Mock()
+    mock_response.choices = [Mock()]
+    mock_response.choices[0].message.content = '  {"what_score": 4}  \n'
+    mock_completion.return_value = mock_response
+
+    client = AIClient(model_name="openai/gpt-4o-mini")
+    evaluation_prompt = "test evaluation prompt"
+    result = client.evaluate_with_llm(evaluation_prompt)
+
+    # Verify whitespace is stripped
+    assert result == '{"what_score": 4}'
+
+
+@patch("diffmage.ai.client.completion")
+def test_evaluate_with_llm_with_custom_params(
+    mock_completion, mock_evaluation_response
+):
+    """Test commit message evaluation with custom client parameters."""
+    # Setup mock
+    mock_completion.return_value = mock_evaluation_response
+
+    # Create client with custom parameters
+    client = AIClient(
+        model_name="anthropic/claude-haiku", temperature=0.7, max_tokens=1500
+    )
+    evaluation_prompt = "test evaluation prompt"
+    result = client.evaluate_with_llm(evaluation_prompt)
+
+    # Verify result
+    assert '"what_score": 4' in result
+
+    # Verify completion was called with custom parameters
+    mock_completion.assert_called_once()
+    call_args = mock_completion.call_args
+    assert call_args[1]["model"] == "anthropic/claude-haiku"
+    assert call_args[1]["temperature"] == 0.7
+    assert call_args[1]["max_tokens"] == 1500

@@ -17,19 +17,10 @@ def analyze(
     output_format: str = typer.Option(
         "summary", "--output", "-o", help="Output format: summary, json, table"
     ),
-    debug: bool = typer.Option(False, "--debug", "-d", help="Enable debug mode"),
 ) -> None:
     """Analyze git changes and extract structured information"""
+
     try:
-        import debugpy
-
-        if debug:
-            debugpy.listen(5678)
-            print("Waiting for debugger attach on port 5678...")
-            debugpy.wait_for_client()
-            print("Debugger attached!")
-            print("In VSCode, hit F5 to attach debugger")
-
         parser = GitDiffParser(repo_path)
         analysis = parser.parse_staged_changes()
 

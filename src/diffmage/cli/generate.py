@@ -1,10 +1,9 @@
 import typer
 from rich.table import Table
-from diffmage.core.models import CommitAnalysis
 from diffmage.ai.models import SupportedModels, get_default_model, get_model_by_name
 from diffmage.cli.shared import app, console
-from diffmage.ai.client import AIClient
-from diffmage.git.diff_parser import GitDiffParser
+from diffmage.generation.service import GenerationService
+from diffmage.generation.models import GenerationRequest
 
 
 @app.command()
@@ -31,13 +30,12 @@ def generate(
         console.print("Use --list-models to see available models")
         raise typer.Exit(1)
 
-    # Parse changes and generate commit message
-    client = AIClient(model_name=model_config.name)
-    parser = GitDiffParser(repo_path=repo_path)
-    analysis: CommitAnalysis = parser.parse_staged_changes()
-    commit_message = client.generate_commit_message(analysis)
+    service = GenerationService(model_name=model_config.name)
+    request = GenerationRequest(repo_path=repo_path)
 
-    console.print(f"[green]Commit message:[/green] {commit_message}")
+    result = service.generate_commit_message(request)
+
+    console.print(f"[green]Commit message:[/green] {result.message}")
 
 
 def _display_available_models() -> None:
