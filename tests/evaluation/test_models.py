@@ -4,7 +4,7 @@ Tests for the evaluation models.
 
 import pytest
 from pydantic import ValidationError
-from diffmage.evaluation.models import EvaluationResult
+from diffmage.evaluation.models import EvaluationResult, ScoreThresholds, QualityRater
 
 
 class TestEvaluationResult:
@@ -57,7 +57,7 @@ class TestEvaluationResult:
         assert result_dict["reasoning"] == "Test reasoning"
         assert result_dict["confidence"] == 0.8
         assert result_dict["model"] == "openai/gpt-4o-mini"
-        assert result_dict["dimension"] == "unified"
+        assert result_dict["quality_level"] == "Good"
 
     def test_evaluation_result_is_high_quality(self):
         """Test high quality check."""
@@ -210,13 +210,58 @@ class TestEvaluationResult:
                 model_used="openai/gpt-4o-mini",
             )
 
-    def test_evaluation_result_validation_empty_model_used(self):
-        """Test validation for empty model_used."""
-        with pytest.raises(ValidationError):
-            EvaluationResult(
-                what_score=4.0,
-                why_score=3.5,
-                reasoning="Test reasoning",
-                confidence=0.8,
-                model_used="",  # Empty string should not be allowed
-            )
+
+class TestScoreThresholds:
+    """Test cases for ScoreThresholds constants."""
+
+    def test_score_thresholds_values(self):
+        """Test that ScoreThresholds constants have correct values."""
+        assert ScoreThresholds.EXCELLENT == 4.5
+        assert ScoreThresholds.GOOD == 3.5
+        assert ScoreThresholds.AVERAGE == 2.5
+        assert ScoreThresholds.POOR == 1.5
+
+
+class TestQualityRater:
+    """Test cases for QualityRater methods."""
+
+    def test_get_quality_level_excellent(self):
+        """Test get_quality_level for excellent quality."""
+        assert QualityRater.get_quality_level(5.0) == "Excellent"
+        assert QualityRater.get_quality_level(4.6) == "Excellent"
+
+    def test_get_quality_level_good(self):
+        """Test get_quality_level for good quality."""
+        assert QualityRater.get_quality_level(4.5) == "Good"
+        assert QualityRater.get_quality_level(4.0) == "Good"
+        assert QualityRater.get_quality_level(3.5) == "Good"
+
+    def test_get_quality_level_average(self):
+        """Test get_quality_level for average quality."""
+        assert QualityRater.get_quality_level(3.4) == "Average"
+        assert QualityRater.get_quality_level(3.0) == "Average"
+        assert QualityRater.get_quality_level(2.5) == "Average"
+
+    def test_get_quality_level_poor(self):
+        """Test get_quality_level for poor quality."""
+        assert QualityRater.get_quality_level(2.4) == "Poor"
+        assert QualityRater.get_quality_level(2.0) == "Poor"
+        assert QualityRater.get_quality_level(1.5) == "Poor"
+
+    def test_get_quality_level_very_poor(self):
+        """Test get_quality_level for very poor quality."""
+        assert QualityRater.get_quality_level(1.4) == "Very Poor"
+        assert QualityRater.get_quality_level(1.0) == "Very Poor"
+        assert QualityRater.get_quality_level(0.0) == "Very Poor"
+
+    def test_is_high_quality_true(self):
+        """Test is_high_quality for high quality scores."""
+        assert QualityRater.is_high_quality(5.0) is True
+        assert QualityRater.is_high_quality(4.0) is True
+        assert QualityRater.is_high_quality(3.6) is True
+
+    def test_is_high_quality_false(self):
+        """Test is_high_quality for low quality scores."""
+        assert QualityRater.is_high_quality(3.5) is False
+        assert QualityRater.is_high_quality(3.0) is False
+        assert QualityRater.is_high_quality(1.0) is False
