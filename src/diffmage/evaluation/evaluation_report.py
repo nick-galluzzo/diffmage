@@ -10,6 +10,7 @@ from rich.table import Table
 from rich import box
 from pathlib import Path
 import csv
+import json
 from datetime import datetime
 
 
@@ -272,5 +273,32 @@ class EvaluationReport:
                         "timestamp": datetime.now().isoformat(),
                     }
                 )
+
+        return str(filepath.absolute())
+
+    def export_json_report(
+        self,
+        results: list[tuple[EvaluationResult, str]],
+        filename: str = "evaluation_report.json",
+    ) -> str:
+        """Export evaluation data to JSON"""
+
+        filepath = Path(filename)
+        stats = self._calculate_report_statistics(results)
+
+        report_data = {
+            "metadata": {
+                "generated_at": datetime.now().isoformat(),
+                "total_evaluations": len(results),
+            },
+            "statistics": stats,
+            "evaluations": [
+                {"commit_message": message, "evaluation": result.to_dict()}
+                for result, message in results
+            ],
+        }
+
+        with open(filepath, "w", encoding="utf-8") as jsonfile:
+            json.dump(report_data, jsonfile, indent=2, ensure_ascii=False)
 
         return str(filepath.absolute())
