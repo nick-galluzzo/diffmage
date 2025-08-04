@@ -1,7 +1,10 @@
 import typer
 from diffmage.cli.shared import app, console
+from diffmage.ai.models import get_default_model
 from diffmage.evaluation.evaluation_report import EvaluationReport
 from diffmage.evaluation.service import EvaluationService
+from diffmage.evaluation.benchmarks import EvaluationBenchmarks
+from diffmage.evaluation.commit_message_evaluator import CommitMessageEvaluator
 
 
 @app.command()
@@ -48,4 +51,50 @@ def batch_report(
 
     except Exception as e:
         console.print(f"[red]Error generating report: {e}[/red]")
+        raise typer.Exit(1)
+
+
+@app.command()
+def benchmark_stability(
+    message: str = typer.Argument(..., help="Commit message to evaluate"),
+    commit_hash: str = typer.Option(None, "--commit", "-c", help="Use commit's diff"),
+    runs: int = typer.Option(2, "--runs", "-n", help="Number of runs to perform"),
+    model_name: str = typer.Option(
+        None, "--model", "-m", help="AI model to use for evaluation"
+    ),
+    repo_path: str = typer.Option(
+        ".", "--repo-path", "-r", help="Path to git repository"
+    ),
+) -> None:
+    """Evaluate the stability of a commit message"""
+
+    try:
+        from diffmage.git.diff_parser import GitDiffParser
+
+        parser = GitDiffParser(repo_path)
+        if commit_hash:
+            analysis, diff = parser.parse_specific_commit(commit_hash)
+        else:
+            analysis = parser.parse_staged_changes()
+            diff = analysis.get_combined_diff()
+
+        if not model_name:
+            model_name = get_default_model().name
+
+        evaluator = CommitMessageEvaluator(model_name)
+        benchmarks = EvaluationBenchmarks(evaluator)
+
+        result = benchmarks.stability_test(message, diff, runs, variance_threshold=0.2)
+
+        if result["is_stable"]:
+            console.print(
+                f"\n[green]✅ Evaluator is STABLE (max variance: {result['max_variance']:.2f})[/green]"
+            )
+        else:
+            console.print(
+                f"\n[red]⚠️ Evaluator is UNSTABLE (max variance: {result['max_variance']:.2f})[/red]"
+            )
+
+    except Exception as e:
+        console.print(f"[red]Error evaluating stability: {e}[/red]")
         raise typer.Exit(1)
