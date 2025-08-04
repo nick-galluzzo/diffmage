@@ -56,8 +56,8 @@ class QualityRater:
         return score >= ScoreThresholds.EXCELLENT
 
 
-class EvaluationResult(BaseModel):
-    """Result of LLM based commit message evaluation with validation"""
+class EvaluationResponse(BaseModel):
+    """Base response model for LLM evaluation without model metadata"""
 
     what_score: float = Field(
         ge=1.0, le=5.0, description="Accuracy of change description"
@@ -67,6 +67,11 @@ class EvaluationResult(BaseModel):
     confidence: float = Field(
         ge=0.0, le=1.0, description="LLM confidence in evaluation"
     )
+
+
+class EvaluationResult(EvaluationResponse):
+    """Result of LLM based commit message evaluation with validation"""
+
     model_used: str = Field(description="Model used for evaluation")
 
     @property
