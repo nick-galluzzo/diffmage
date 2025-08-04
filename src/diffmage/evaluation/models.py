@@ -25,9 +25,9 @@ class QualityRater:
         Returns one of:
         - Excellent (4.5-5.0)
         - Good (3.5-4.4)
-        - Average (2.5-3.4)
-        - Poor (1.5-2.4)
-        - Very Poor (0.0-1.4)
+        - Average (2.6-3.5)
+        - Poor (1.6-2.5)
+        - Very Poor (0.0-1.5)
         """
         if score >= ScoreThresholds.EXCELLENT:
             return "Excellent"
