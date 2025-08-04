@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 from rich.console import Console
 from rich.panel import Panel
 from rich.text import Text
@@ -12,6 +12,8 @@ from pathlib import Path
 import csv
 import json
 from datetime import datetime
+import git
+from diffmage.evaluation.service import get_default_model
 
 
 class EvaluationReport:
@@ -23,7 +25,7 @@ class EvaluationReport:
         self.service = service
         self.console = Console()
 
-    def generate_report(
+    def generate_quality_report(
         self,
         results: list[tuple[EvaluationResult, str]],
         title: str = "Commit Message Quality Report",
@@ -302,3 +304,79 @@ class EvaluationReport:
             json.dump(report_data, jsonfile, indent=2, ensure_ascii=False)
 
         return str(filepath.absolute())
+
+    def batch_evaluate_commits(
+        self,
+        commit_start_range: str,
+        commit_end_range: str,
+        repo_path: str = ".",
+        model_name: Optional[str] = None,
+    ) -> dict[str, Any]:
+        """
+        Evaluate multiple commits and generate comprehensive report
+
+        Args:
+            commit_start_range: Start of git commit range (e.g., "HEAD~10", "abc456")
+            commit_end_range: End of git commit range (e.g., "HEAD", "abc123")
+            repo_path: Path to git repository
+            model_name: AI model to use for evaluation
+
+        Returns:
+            Dictionary with evaluation results and statistics
+        """
+
+        if not model_name:
+            model_name = get_default_model().name
+
+        commit_range = f"{commit_start_range}..{commit_end_range}"
+
+        # Get commit list
+        try:
+            repo = git.Repo(repo_path)
+            commits = list(repo.iter_commits(commit_range))
+        except Exception as e:
+            raise ValueError(f"Failed to get commits for range '{commit_range}': {e}")
+
+        if not commits:
+            raise ValueError(f"No commits found in range: {commit_range}")
+
+        self.console.print(
+            f"[blue]Evaluating {len(commits)} commits from range: {commit_range}[/blue]"
+        )
+
+        # Evaluate each commit
+        service = EvaluationService(model_name=model_name)
+        results = []
+
+        with self.console.status("[bold green]Evaluating commits...") as status:
+            for i, commit in enumerate(commits, 1):
+                status.update(
+                    f"[bold green]Evaluating commit {i}/{len(commits)}: {commit.hexsha[:8]}"
+                )
+
+                try:
+                    result, message = service.evaluate_commit(commit.hexsha, repo_path)
+                    results.append((result, message))
+                except Exception as e:
+                    self.console.print(
+                        f"[red]Warning: Failed to evaluate {commit.hexsha[:8]}: {e}[/red]"
+                    )
+                    continue
+
+        if not results:
+            raise ValueError("No commits could be evaluated successfully")
+
+        # Generate report
+        report_title = f"Batch Evaluation Report: {commit_range}"
+        self.generate_quality_report(results, report_title)
+
+        # Calculate and return statistics
+        stats = self._calculate_report_statistics(results)
+
+        return {
+            "commit_range": commit_range,
+            "total_commits": len(commits),
+            "successful_evaluations": len(results),
+            "statistics": stats,
+            "results": results,
+        }

@@ -66,7 +66,7 @@ class TestEvaluationReport:
     def test_generate_report_empty_results_raises_error(self, report):
         """Test that empty results raise ValueError"""
         with pytest.raises(ValueError, match="No evaluation results to report"):
-            report.generate_report([])
+            report.generate_quality_report([])
 
     def test_generate_report_with_unicode_messages(self, report):
         """Test handling of Unicode characters in commit messages"""
@@ -93,7 +93,7 @@ class TestEvaluationReport:
             ),
         ]
 
-        result = report.generate_report(unicode_results)
+        result = report.generate_quality_report(unicode_results)
         assert "Report generated successfully for 2 evaluations" in result
 
     @pytest.mark.parametrize(
@@ -192,7 +192,7 @@ class TestEvaluationReport:
                 "high_quality_count": 0,
                 "low_quality_count": 0,
             }
-            report.generate_report(mock_results)
+            report.generate_quality_report(mock_results)
 
             mock_calc.assert_called_once_with(mock_results)
 
