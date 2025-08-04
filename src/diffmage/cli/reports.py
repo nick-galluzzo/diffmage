@@ -1,6 +1,5 @@
 import typer
 from diffmage.cli.shared import app, console
-from diffmage.ai.models import get_default_model
 from diffmage.evaluation.evaluation_report import EvaluationReport
 from diffmage.evaluation.service import EvaluationService
 from diffmage.evaluation.benchmarks import EvaluationBenchmarks
@@ -77,9 +76,6 @@ def benchmark_stability(
         else:
             analysis = parser.parse_staged_changes()
             diff = analysis.get_combined_diff()
-
-        if not model_name:
-            model_name = get_default_model().name
 
         evaluator = CommitMessageEvaluator(model_name)
         benchmarks = EvaluationBenchmarks(evaluator)
