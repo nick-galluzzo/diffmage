@@ -13,7 +13,7 @@ import csv
 import json
 from datetime import datetime
 import git
-from diffmage.evaluation.service import get_default_model
+from diffmage.ai.models import get_default_model
 
 
 class EvaluationReport:

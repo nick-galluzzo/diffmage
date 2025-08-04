@@ -723,7 +723,7 @@ class TestEvaluationReport:
         reasoning="Good commit message",
         confidence=0.9,
         model_used="gpt-4o",
-    ):
+    ) -> tuple[EvaluationResult, str]:
         return (
             EvaluationResult(
                 what_score=what_score,

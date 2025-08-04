@@ -86,18 +86,23 @@ class AIClient:
         except Exception as e:
             # If structured output fails, fall back to regular completion
             try:
-                response: Union[ModelResponse, CustomStreamWrapper] = completion(
-                    model=self.model_config.name,
-                    messages=[
-                        {"role": "system", "content": get_evaluation_system_prompt()},
-                        {"role": "user", "content": evaluation_prompt},
-                    ],
-                    temperature=self.temperature,
-                    max_tokens=self.max_tokens,
-                    stream=False,
+                fallback_response: Union[ModelResponse, CustomStreamWrapper] = (
+                    completion(
+                        model=self.model_config.name,
+                        messages=[
+                            {
+                                "role": "system",
+                                "content": get_evaluation_system_prompt(),
+                            },
+                            {"role": "user", "content": evaluation_prompt},
+                        ],
+                        temperature=self.temperature,
+                        max_tokens=self.max_tokens,
+                        stream=False,
+                    )
                 )
 
-                content = response.choices[0].message.content.strip()  # type: ignore
+                content = fallback_response.choices[0].message.content.strip()  # type: ignore
                 if not content:
                     raise ValueError("Empty response from model")
 
