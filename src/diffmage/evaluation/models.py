@@ -20,14 +20,22 @@ class QualityRater:
 
     @staticmethod
     def get_quality_level(score: float) -> str:
-        """Human readable quality assessment"""
-        if score > ScoreThresholds.EXCELLENT:
+        """Human readable quality assessment
+
+        Returns one of:
+        - Excellent (4.5-5.0)
+        - Good (3.5-4.4)
+        - Average (2.6-3.5)
+        - Poor (1.6-2.5)
+        - Very Poor (0.0-1.5)
+        """
+        if score >= ScoreThresholds.EXCELLENT:
             return "Excellent"
-        elif score >= ScoreThresholds.GOOD:
+        elif score > ScoreThresholds.GOOD:
             return "Good"
-        elif score >= ScoreThresholds.AVERAGE:
+        elif score > ScoreThresholds.AVERAGE:
             return "Average"
-        elif score >= ScoreThresholds.POOR:
+        elif score > ScoreThresholds.POOR:
             return "Poor"
         else:
             return "Very Poor"
@@ -45,11 +53,11 @@ class QualityRater:
     @staticmethod
     def is_high_quality(score: float) -> bool:
         """Check if score represents high quality"""
-        return score > ScoreThresholds.GOOD
+        return score >= ScoreThresholds.EXCELLENT
 
 
-class EvaluationResult(BaseModel):
-    """Result of LLM based commit message evaluation with validation"""
+class EvaluationResponse(BaseModel):
+    """Base response model for LLM evaluation without model metadata"""
 
     what_score: float = Field(
         ge=1.0, le=5.0, description="Accuracy of change description"
@@ -59,6 +67,11 @@ class EvaluationResult(BaseModel):
     confidence: float = Field(
         ge=0.0, le=1.0, description="LLM confidence in evaluation"
     )
+
+
+class EvaluationResult(EvaluationResponse):
+    """Result of LLM based commit message evaluation with validation"""
+
     model_used: str = Field(description="Model used for evaluation")
 
     @property

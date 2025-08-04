@@ -61,10 +61,10 @@ class TestEvaluationResult:
 
     def test_evaluation_result_is_high_quality(self):
         """Test high quality check."""
-        # Test high quality score (> 3.5)
+        # Test high quality score (>= 4.5)
         high_quality_result = EvaluationResult(
-            what_score=4.0,
-            why_score=4.0,
+            what_score=4.5,
+            why_score=4.5,
             reasoning="Test reasoning",
             confidence=0.9,
             model_used="openai/gpt-4o-mini",
@@ -73,8 +73,8 @@ class TestEvaluationResult:
 
         # Test low quality score (<= 3.5)
         low_quality_result = EvaluationResult(
-            what_score=3.0,
-            why_score=3.0,
+            what_score=3.5,
+            why_score=3.5,
             reasoning="Test reasoning",
             confidence=0.5,
             model_used="openai/gpt-4o-mini",
@@ -232,21 +232,21 @@ class TestQualityRater:
 
     def test_get_quality_level_good(self):
         """Test get_quality_level for good quality."""
-        assert QualityRater.get_quality_level(4.5) == "Good"
+        assert QualityRater.get_quality_level(4.4) == "Good"
         assert QualityRater.get_quality_level(4.0) == "Good"
-        assert QualityRater.get_quality_level(3.5) == "Good"
+        assert QualityRater.get_quality_level(3.6) == "Good"
 
     def test_get_quality_level_average(self):
         """Test get_quality_level for average quality."""
         assert QualityRater.get_quality_level(3.4) == "Average"
         assert QualityRater.get_quality_level(3.0) == "Average"
-        assert QualityRater.get_quality_level(2.5) == "Average"
+        assert QualityRater.get_quality_level(2.6) == "Average"
 
     def test_get_quality_level_poor(self):
         """Test get_quality_level for poor quality."""
         assert QualityRater.get_quality_level(2.4) == "Poor"
         assert QualityRater.get_quality_level(2.0) == "Poor"
-        assert QualityRater.get_quality_level(1.5) == "Poor"
+        assert QualityRater.get_quality_level(1.6) == "Poor"
 
     def test_get_quality_level_very_poor(self):
         """Test get_quality_level for very poor quality."""
@@ -257,11 +257,11 @@ class TestQualityRater:
     def test_is_high_quality_true(self):
         """Test is_high_quality for high quality scores."""
         assert QualityRater.is_high_quality(5.0) is True
-        assert QualityRater.is_high_quality(4.0) is True
-        assert QualityRater.is_high_quality(3.6) is True
+        assert QualityRater.is_high_quality(4.8) is True
+        assert QualityRater.is_high_quality(4.6) is True
 
     def test_is_high_quality_false(self):
         """Test is_high_quality for low quality scores."""
-        assert QualityRater.is_high_quality(3.5) is False
+        assert QualityRater.is_high_quality(4.4) is False
         assert QualityRater.is_high_quality(3.0) is False
         assert QualityRater.is_high_quality(1.0) is False
