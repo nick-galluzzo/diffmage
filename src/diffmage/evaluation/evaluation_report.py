@@ -8,6 +8,9 @@ from collections import Counter
 from statistics import mean, median
 from rich.table import Table
 from rich import box
+from pathlib import Path
+import csv
+from datetime import datetime
 
 
 class EvaluationReport:
@@ -220,3 +223,54 @@ class EvaluationReport:
             )
 
         self.console.print(table)
+
+    def export_csv_report(
+        self,
+        results: list[tuple[EvaluationResult, str]],
+        filename: str = "evaluation_report.csv",
+    ) -> str:
+        """
+        Export evaluation data to CSV for analysis
+
+        Args:
+            results: List of (EvaluationResult, commit_message) tuples
+            filename: Output CSV filename
+
+        Returns:
+            Path to created CSV file
+        """
+
+        filepath = Path(filename)
+
+        with open(filepath, "w", newline="", encoding="utf-8") as csvfile:
+            fieldnames = [
+                "commit_message",
+                "what_score",
+                "why_score",
+                "overall_score",
+                "quality_level",
+                "reasoning",
+                "confidence",
+                "model_used",
+                "timestamp",
+            ]
+
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+
+            for result, message in results:
+                writer.writerow(
+                    {
+                        "commit_message": message,
+                        "what_score": result.what_score,
+                        "why_score": result.why_score,
+                        "overall_score": result.overall_score,
+                        "quality_level": result.quality_level,
+                        "reasoning": result.reasoning,
+                        "confidence": result.confidence,
+                        "model_used": result.model_used,
+                        "timestamp": datetime.now().isoformat(),
+                    }
+                )
+
+        return str(filepath.absolute())
