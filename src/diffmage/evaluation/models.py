@@ -20,7 +20,15 @@ class QualityRater:
 
     @staticmethod
     def get_quality_level(score: float) -> str:
-        """Human readable quality assessment"""
+        """Human readable quality assessment
+
+        Returns one of:
+        - Excellent (4.5-5.0)
+        - Good (3.5-4.4)
+        - Average (2.5-3.4)
+        - Poor (1.5-2.4)
+        - Very Poor (0.0-1.4)
+        """
         if score > ScoreThresholds.EXCELLENT:
             return "Excellent"
         elif score >= ScoreThresholds.GOOD:
@@ -45,7 +53,7 @@ class QualityRater:
     @staticmethod
     def is_high_quality(score: float) -> bool:
         """Check if score represents high quality"""
-        return score > ScoreThresholds.GOOD
+        return score >= ScoreThresholds.EXCELLENT
 
 
 class EvaluationResult(BaseModel):
