@@ -26,7 +26,16 @@ class EvaluationService:
     def evaluate_commit(
         self, commit_hash: str, repo_path: str = "."
     ) -> tuple[EvaluationResult, str]:
-        """Evaluate a specific commit in the repository"""
+        """Evaluate a specific commit in the repository
+
+        Args:
+            commit_hash: The hash of the commit to evaluate (e.g., "abc123")
+            repo_path: The path to the repository
+
+        Returns:
+            - EvaluationResult: The evaluation result
+            - str: The generated commit message
+        """
         parser = GitDiffParser(repo_path)
         analysis, message = parser.parse_specific_commit(commit_hash)
         git_diff = analysis.get_combined_diff()
