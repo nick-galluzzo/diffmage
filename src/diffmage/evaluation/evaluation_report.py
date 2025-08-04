@@ -172,27 +172,80 @@ class EvaluationReport:
 
         self.console.print(table)
 
+    def get_top_performers(
+        self, results: list[tuple[EvaluationResult, str]], count: int = 3
+    ) -> list[tuple[EvaluationResult, str]]:
+        """Get top performing results by overall score"""
+        if not results:
+            return []
+
+        sorted_results = sorted(results, key=lambda x: x[0].overall_score, reverse=True)
+        return sorted_results[: min(count, len(sorted_results))]
+
+    def get_bottom_performers(
+        self, results: list[tuple[EvaluationResult, str]], count: int = 3
+    ) -> list[tuple[EvaluationResult, str]]:
+        """Get bottom performing results by overall score, excluding overlap with top performers"""
+        if len(results) <= 1:
+            return []
+
+        sorted_results = sorted(results, key=lambda x: x[0].overall_score, reverse=True)
+
+        # Get top performer indices to avoid overlap
+        num_top = min(count, len(sorted_results))
+        top_indices = set(range(num_top))
+
+        # Get bottom performers, excluding those already in top
+        num_bottom = min(count, len(sorted_results))
+        bottom_performers = [
+            sorted_results[i]
+            for i in range(len(sorted_results) - num_bottom, len(sorted_results))
+            if i not in top_indices
+        ]
+
+        # Sort bottom performers ascending (worst to best)
+        return sorted(bottom_performers, key=lambda x: x[0].overall_score)
+
+    def get_top_and_bottom_performers(
+        self, results: list[tuple[EvaluationResult, str]], count: int = 3
+    ) -> tuple[list[tuple[EvaluationResult, str]], list[tuple[EvaluationResult, str]]]:
+        """Get top and bottom performers ensuring no overlap between them"""
+        top_performers = self.get_top_performers(results, count)
+        bottom_performers = self.get_bottom_performers(results, count)
+
+        # Ensure no overlap by checking actual instances
+        top_instances = set(id(item) for item in top_performers)
+        bottom_performers = [
+            item for item in bottom_performers if id(item) not in top_instances
+        ]
+
+        return top_performers, bottom_performers
+
     def _display_top_and_bottom_performers(
         self, results: list[tuple[EvaluationResult, str]]
     ) -> None:
         """Display the top and bottom performers"""
 
-        sorted_results = sorted(results, key=lambda x: x[0].overall_score, reverse=True)
+        top_performers, bottom_performers = self.get_top_and_bottom_performers(results)
 
+        # Display top performers
         self.console.print("[bold green]🏆 Top Performing Messages:[/bold green]")
-        for i, (result, message) in enumerate(sorted_results[:3], 1):
-            truncated_msg = message[:60] + "..." if len(message) > 60 else message
-            self.console.print(f"  {i}. [{result.overall_score:.1f}/5] {truncated_msg}")
+        self.console.print()
+
+        for i, (result, message) in enumerate(top_performers, 1):
+            self.console.print(f"  {i}. [{result.overall_score:.1f}/5] {message}")
+            self.console.print()
 
         self.console.print()
 
-        if len(sorted_results) > 3:
+        # Display bottom performers if we have any
+        if bottom_performers:
             self.console.print("[bold red]⚠️  Lowest Performing Messages:[/bold red]")
-            for i, (result, message) in enumerate(sorted_results[-3:], 1):
-                truncated_msg = message[:60] + "..." if len(message) > 60 else message
-                self.console.print(
-                    f"  {i}. [{result.overall_score:.1f}/5] {truncated_msg}"
-                )
+            self.console.print()
+
+            for i, (result, message) in enumerate(bottom_performers, 1):
+                self.console.print(f"  {i}. [{result.overall_score:.1f}/5] {message}")
+            self.console.print()
 
         self.console.print()
 

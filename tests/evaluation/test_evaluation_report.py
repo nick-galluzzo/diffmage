@@ -597,6 +597,123 @@ class TestEvaluationReport:
         assert stats["model_usage"]["gpt-4o"] == 1
         assert stats["total_evaluations"] == 2
 
+    def test_get_top_performers(self, report):
+        """Test getting top performers by score"""
+        mock_results = [
+            self._create_mock_result(
+                what_score=5, why_score=5, reasoning="Perfect commit"
+            ),
+            self._create_mock_result(
+                what_score=4, why_score=4, reasoning="Good commit"
+            ),
+            self._create_mock_result(
+                what_score=3, why_score=3, reasoning="Average commit"
+            ),
+            self._create_mock_result(
+                what_score=2, why_score=2, reasoning="Poor commit"
+            ),
+        ]
+
+        top_performers = report.get_top_performers(mock_results, count=3)
+
+        assert len(top_performers) == 3
+        assert top_performers[0][0].overall_score == 5.0  # highest first
+        assert top_performers[1][0].overall_score == 4.0
+        assert top_performers[2][0].overall_score == 3.0
+
+    def test_get_bottom_performers(self, report):
+        """Test getting bottom performers by score, excluding top performers"""
+        mock_results = [
+            self._create_mock_result(
+                what_score=5, why_score=5, reasoning="Perfect commit"
+            ),
+            self._create_mock_result(
+                what_score=4, why_score=4, reasoning="Good commit"
+            ),
+            self._create_mock_result(
+                what_score=3, why_score=3, reasoning="Average commit"
+            ),
+            self._create_mock_result(
+                what_score=2, why_score=2, reasoning="Poor commit"
+            ),
+            self._create_mock_result(what_score=1, why_score=1, reasoning="Bad commit"),
+        ]
+
+        bottom_performers = report.get_bottom_performers(mock_results, count=3)
+
+        assert (
+            len(bottom_performers) == 2
+        )  # 3 requested, but 3 are taken by top, leaving 2
+        assert bottom_performers[0][0].overall_score == 1.0  # worst first (ascending)
+        assert bottom_performers[1][0].overall_score == 2.0
+
+    def test_get_top_and_bottom_performers_no_overlap(self, report):
+        """Test that top and bottom performers have no overlap"""
+        mock_results = [
+            self._create_mock_result(
+                what_score=5, why_score=5, reasoning="Perfect commit"
+            ),
+            self._create_mock_result(
+                what_score=4, why_score=4, reasoning="Good commit"
+            ),
+            self._create_mock_result(
+                what_score=3, why_score=3, reasoning="Average commit"
+            ),
+            self._create_mock_result(
+                what_score=2, why_score=2, reasoning="Poor commit"
+            ),
+            self._create_mock_result(what_score=1, why_score=1, reasoning="Bad commit"),
+        ]
+
+        top_performers, bottom_performers = report.get_top_and_bottom_performers(
+            mock_results, count=3
+        )
+
+        # Verify no overlap using instance identity
+        top_ids = {id(item) for item in top_performers}
+        bottom_ids = {id(item) for item in bottom_performers}
+        assert len(top_ids.intersection(bottom_ids)) == 0
+
+        # Verify correct counts and scores
+        assert len(top_performers) == 3
+        assert len(bottom_performers) == 2  # 5 total - 3 top = 2 remaining
+
+        assert top_performers[0][0].overall_score == 5.0
+        assert bottom_performers[0][0].overall_score == 1.0  # worst first
+
+    def test_get_top_and_bottom_performers_single_result(self, report):
+        """Test edge case with single result"""
+        single_result = [
+            self._create_mock_result(what_score=3, why_score=3, reasoning="Only commit")
+        ]
+
+        top_performers, bottom_performers = report.get_top_and_bottom_performers(
+            single_result
+        )
+
+        assert len(top_performers) == 1
+        assert len(bottom_performers) == 0  # No bottom performers with only 1 result
+
+    def test_get_top_and_bottom_performers_two_results(self, report):
+        """Test edge case with two results"""
+        two_results = [
+            self._create_mock_result(
+                what_score=5, why_score=5, reasoning="Great commit"
+            ),
+            self._create_mock_result(
+                what_score=2, why_score=2, reasoning="Poor commit"
+            ),
+        ]
+
+        top_performers, bottom_performers = report.get_top_and_bottom_performers(
+            two_results
+        )
+
+        assert len(top_performers) == 2  # Both results in top
+        assert (
+            len(bottom_performers) == 0
+        )  # No bottom performers due to overlap exclusion
+
     #### Private methods ####
 
     def _create_mock_result(
