@@ -1,5 +1,7 @@
 from typing import Any
 from rich.console import Console
+from rich.panel import Panel
+from rich.text import Text
 from diffmage.evaluation.service import EvaluationService
 from diffmage.evaluation.models import EvaluationResult, QualityRater
 from collections import Counter
@@ -17,14 +19,36 @@ class EvaluationReport:
         self.service = service
         self.console = Console()
 
-    def generate_report(self, results: list[tuple[EvaluationResult, str]]) -> str:
-        """Generate a report for the evaluation results"""
+    def generate_report(
+        self,
+        results: list[tuple[EvaluationResult, str]],
+        title: str = "Commit Message Quality Report",
+    ) -> str:
+        """
+        Generate rich formatted quality report for console display
+
+        Args:
+          results: List of (EvaluationResult, commit message) tuples
+          title: Optional title for the report
+
+          Returns:
+            Formatted report string
+        """
         if not results:
             raise ValueError("No evaluation results to report")
 
         statistics = self._calculate_report_statistics(results)
 
         #### --Displays-- ####
+
+        # Header
+        self.console.print(
+            Panel(
+                Text(title, justify="center", style="bold white"),
+                style="blue",
+                padding=(1, 2),
+            )
+        )
 
         # Summary
         self._display_summary_table(statistics)
