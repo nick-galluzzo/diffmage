@@ -1,5 +1,5 @@
 from .shared import app, console
 
-from . import main, generate, evaluate
+from . import main, generate, evaluate, reports
 
-__all__ = ["app", "console", "main", "generate", "evaluate"]
+__all__ = ["app", "console", "main", "generate", "evaluate", "reports"]

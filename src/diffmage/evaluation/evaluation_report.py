@@ -245,7 +245,7 @@ class EvaluationReport:
 
             for i, (result, message) in enumerate(bottom_performers, 1):
                 self.console.print(f"  {i}. [{result.overall_score:.1f}/5] {message}")
-            self.console.print()
+                self.console.print()
 
         self.console.print()
 
@@ -360,8 +360,8 @@ class EvaluationReport:
 
     def batch_evaluate_commits(
         self,
-        commit_start_range: str,
-        commit_end_range: str,
+        from_commit: str,  # Older commit (Inclusive)
+        to_commit: str,  # Newer commit (Inclusive)
         repo_path: str = ".",
         model_name: Optional[str] = None,
     ) -> dict[str, Any]:
@@ -369,8 +369,8 @@ class EvaluationReport:
         Evaluate multiple commits and generate comprehensive report
 
         Args:
-            commit_start_range: Start of git commit range (e.g., "HEAD~10", "abc456")
-            commit_end_range: End of git commit range (e.g., "HEAD", "abc123")
+            from_commit: Start of git commit range (e.g., "HEAD~10", "abc456"). Inclusive.
+            to_commit: End of git commit range (e.g., "HEAD", "abc123"). Inclusive.
             repo_path: Path to git repository
             model_name: AI model to use for evaluation
 
@@ -381,7 +381,7 @@ class EvaluationReport:
         if not model_name:
             model_name = get_default_model().name
 
-        commit_range = f"{commit_start_range}..{commit_end_range}"
+        commit_range = f"{from_commit}~1..{to_commit}"
 
         # Get commit list
         try:

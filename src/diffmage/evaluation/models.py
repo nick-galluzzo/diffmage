@@ -29,13 +29,13 @@ class QualityRater:
         - Poor (1.5-2.4)
         - Very Poor (0.0-1.4)
         """
-        if score > ScoreThresholds.EXCELLENT:
+        if score >= ScoreThresholds.EXCELLENT:
             return "Excellent"
-        elif score >= ScoreThresholds.GOOD:
+        elif score > ScoreThresholds.GOOD:
             return "Good"
-        elif score >= ScoreThresholds.AVERAGE:
+        elif score > ScoreThresholds.AVERAGE:
             return "Average"
-        elif score >= ScoreThresholds.POOR:
+        elif score > ScoreThresholds.POOR:
             return "Poor"
         else:
             return "Very Poor"
