@@ -370,11 +370,19 @@ class TestEvaluationBenchmarks:
 
     #### Score Variance #####
 
-    def test_calculate_score_if_no_scores_returns_empty_dict(self, benchmarks):
-        """Test calculate_score_variance returns empty dict if no scores"""
-        scores = []
+    def test_calculate_score_if_no_scores_returns_zero_stats(self, benchmarks):
+        """Test calculate_score_variance returns zero stats if no scores"""
+        scores: list[float] = []
         result = benchmarks._calculate_score_variance(scores)
-        assert result == {}
+        expected = {
+            "mean": 0.0,
+            "median": 0.0,
+            "std": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "range": 0.0,
+        }
+        assert result == expected
 
     def test_calculate_score_variance_returns_expected_structure(self, benchmarks):
         """Test calculate_score_variance returns expected structure"""
