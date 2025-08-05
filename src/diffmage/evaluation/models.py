@@ -43,9 +43,11 @@ class QualityRater:
     @staticmethod
     def get_rating_color(score: float) -> str:
         """Color for the quality rating"""
-        if score > ScoreThresholds.EXCELLENT:
+        if score >= ScoreThresholds.EXCELLENT:
             return "green"
         elif score >= ScoreThresholds.GOOD:
+            return "blue"
+        elif score >= ScoreThresholds.AVERAGE:
             return "yellow"
         else:
             return "red"
