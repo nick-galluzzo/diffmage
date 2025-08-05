@@ -56,10 +56,22 @@ class CommitMessageEvaluator:
         """
 
         if not commit_message.strip():
-            raise ValueError("Commit message cannot be empty")
+            return EvaluationResult(
+                what_score=1.0,
+                why_score=1.0,
+                reasoning="Empty commit message provides no information",
+                confidence=1.0,
+                model_used=self.model_name,
+            )
 
         if not git_diff.strip():
-            raise ValueError("Git diff cannot be empty")
+            return EvaluationResult(
+                what_score=1.0,
+                why_score=1.0,
+                reasoning="No diff provided. Cannot assess commit content",
+                confidence=1.0,
+                model_used=self.model_name,
+            )
 
         try:
             evaluation_prompt = get_evaluation_prompt(commit_message, git_diff)

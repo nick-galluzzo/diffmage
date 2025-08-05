@@ -59,15 +59,21 @@ class TestLLMEvaluator:
         """Test evaluation with empty commit message."""
         evaluator = CommitMessageEvaluator()
 
-        with pytest.raises(ValueError, match="Commit message cannot be empty"):
-            evaluator.evaluate_commit_message("", "some diff")
+        result = evaluator.evaluate_commit_message("", "some diff")
+        assert result.what_score == 1.0
+        assert result.why_score == 1.0
+        assert result.overall_score == 1.0
+        assert result.confidence == 1.0
 
     def test_evaluate_commit_message_empty_diff(self):
         """Test evaluation with empty git diff."""
         evaluator = CommitMessageEvaluator()
 
-        with pytest.raises(ValueError, match="Git diff cannot be empty"):
-            evaluator.evaluate_commit_message("some message", "")
+        result = evaluator.evaluate_commit_message("some message", "")
+        assert result.what_score == 1.0
+        assert result.why_score == 1.0
+        assert result.overall_score == 1.0
+        assert result.confidence == 1.0
 
     def test_evaluate_commit_message_llm_error(self):
         """Test evaluation when LLM call fails."""
