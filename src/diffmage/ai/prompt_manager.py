@@ -32,6 +32,7 @@ def get_commit_prompt(
 
   Instructions:
   - Use conventional commits format:<type>(<optional scope>): <description>
+  - Only return the commit message, nothing else.
   - Use imperative mood ("add", "fix", "update", not "added", "fixed", "updated")
   - Focus on WHAT changed and WHY, not HOW. Consider WHAT was impacted and WHY it was needed.
 
