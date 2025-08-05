@@ -1,3 +1,4 @@
+from typing import TypedDict
 import time
 import statistics
 from datetime import datetime
@@ -5,6 +6,49 @@ from rich.table import Table
 from rich.console import Console
 from diffmage.evaluation.commit_message_evaluator import CommitMessageEvaluator
 from rich.progress import Progress
+
+
+class ScoreStats(TypedDict):
+    mean: float
+    median: float
+    std: float
+    min: float
+    max: float
+    range: float
+
+
+class ExecutionTimeStats(TypedDict):
+    mean: float
+    std: float
+    min: float
+    max: float
+
+
+class BenchmarkStats(TypedDict):
+    what: ScoreStats
+    why: ScoreStats
+    overall: ScoreStats
+    execution_time: ExecutionTimeStats
+
+
+class RunResult(TypedDict):
+    run: int
+    what_score: float
+    why_score: float
+    overall_score: float
+    confidence: float
+    execution_time: float
+
+
+class StabilityTestResult(TypedDict):
+    message: str
+    runs: int
+    results: list[RunResult]
+    statistics: BenchmarkStats
+    is_stable: bool
+    max_variance: float
+    variance_threshold: float
+    timestamp: str
 
 
 class EvaluationBenchmarks:
@@ -18,15 +62,15 @@ class EvaluationBenchmarks:
 
     def stability_test(
         self, message: str, diff: str, runs: int = 3, variance_threshold: float = 0.2
-    ) -> dict:
+    ) -> StabilityTestResult:
         """
         Run a stability test on the evaluator.
         """
         if not message or not diff:
             raise ValueError("Message and diff are required for stability test")
 
-        results = []
-        execution_times = []
+        results: list[RunResult] = []
+        execution_times: list[float] = []
         with Progress(console=self.console) as progress:
             task = progress.add_task("Evaluating...", total=runs)
             for run in range(runs):
@@ -36,7 +80,7 @@ class EvaluationBenchmarks:
                 execution_time = time.time() - start_time
                 execution_times.append(execution_time)
 
-                run_data = {
+                run_data: RunResult = {
                     "run": run + 1,
                     "what_score": result.what_score,
                     "why_score": result.why_score,
@@ -69,8 +113,8 @@ class EvaluationBenchmarks:
         }
 
     def _calculate_statistics(
-        self, results: list[dict], execution_times: list[float]
-    ) -> dict:
+        self, results: list[RunResult], execution_times: list[float]
+    ) -> BenchmarkStats:
         """
         Calculate statistics for the results and execution times.
         """
@@ -92,7 +136,7 @@ class EvaluationBenchmarks:
             },
         }
 
-    def _determine_stability(self, stats: dict) -> float:
+    def _determine_stability(self, stats: BenchmarkStats) -> float:
         """
         Determine stability based on the statistics.
         """
@@ -100,12 +144,19 @@ class EvaluationBenchmarks:
             stats["what"]["range"], stats["why"]["range"], stats["overall"]["range"]
         )
 
-    def _calculate_score_variance(self, scores: list[float]) -> dict[str, float]:
+    def _calculate_score_variance(self, scores: list[float]) -> ScoreStats:
         """
         Calculate variance and other statistics for a list of scores.
         """
         if not scores:
-            return {}
+            return {
+                "mean": 0.0,
+                "median": 0.0,
+                "std": 0.0,
+                "min": 0.0,
+                "max": 0.0,
+                "range": 0.0,
+            }
 
         return {
             "mean": statistics.mean(scores),
@@ -117,7 +168,7 @@ class EvaluationBenchmarks:
         }
 
     def _display_stability_results(
-        self, stats: dict, is_stable: bool, threshold: float
+        self, stats: BenchmarkStats, is_stable: bool, threshold: float
     ) -> None:
         """
         Display the stability test results.
@@ -130,14 +181,19 @@ class EvaluationBenchmarks:
         table.add_column("Range", justify="center")
         table.add_column("Status", justify="center")
 
-        for dimension in ["what", "why", "overall"]:
-            stat = stats[dimension]
+        dimensions_data = [
+            ("WHAT", stats["what"]),
+            ("WHY", stats["why"]),
+            ("OVERALL", stats["overall"]),
+        ]
+
+        for dimension_name, stat in dimensions_data:
             range_val = stat["range"]
             status = "✅ Stable" if range_val <= threshold else "⚠️ Unstable"
             status_color = "green" if range_val <= threshold else "red"
 
             table.add_row(
-                dimension.upper(),
+                dimension_name,
                 f"{stat['mean']:.2f}",
                 f"{stat['std']:.2f}",
                 f"{range_val:.2f}",
