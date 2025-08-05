@@ -20,7 +20,7 @@ class CommitMessageEvaluator:
     LLM based commit message quality evaluator using Chain of Thought Reasoning
 
     Evaluates commit message quality  across two dimensions:
-    - WhHAT: How accurately the message describes the code changes
+    - WHAT: How accurately the message describes the code changes
     - WHY: How clearly it explains the purpose/reasoning/impact of the changes
 
     """
