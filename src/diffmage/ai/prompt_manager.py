@@ -74,6 +74,37 @@ def get_generation_system_prompt() -> str:
   """
 
 
+def get_why_context_prompt(preliminary_message: str, why_context: str) -> str:
+    """
+    Build the prompt for enhancing an existing commit message with external 'why' context.
+    """
+    return f"""
+    You are a professional software engineer and an expert at writing concise, high-quality Git commit messages that follow the Conventional Commits specification.
+
+    Your task is to refine and enhance the preliminary commit message by improving and expanding upon the "WHY" part of the commit message by integrating external context.
+
+    Do not include any additional explanatory text, commentary, or conversational filler. The output should be ready to be copied and pasted directly into a `git commit` command.
+
+    <PRELIMINARY_COMMIT_MESSAGE>
+    {preliminary_message}
+    </PRELIMINARY_COMMIT_MESSAGE>
+
+    <EXTERNAL_CONTEXT>
+    {why_context}
+    </EXTERNAL_CONTEXT>
+
+    <INSTRUCTION>
+    Lead with the problem. Start the WHY by clearly stating the problem or issue that the change is solving, state the solution, and end with the benefit. Be concise but thorough.
+
+    Based on the provided information, return the exact <preliminary_commit_message> with the enhanced "why" from the external context. Ensure the WHY follows the Conventional Commits format, ensuring the body clearly explains the problem and the benefit/impact of the change.
+
+    Do not include any additional explanatory text, commentary, or conversational filler. The output should be ready to be copied and pasted directly into a `git commit` command.
+    </INSTRUCTION>
+
+    Final commit message:
+    """
+
+
 # Evaluation prompts
 
 

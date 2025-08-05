@@ -3,7 +3,7 @@
 from typing import Optional
 from diffmage.ai.client import AIClient
 from diffmage.ai.models import get_default_model
-from diffmage.ai.prompt_manager import get_commit_prompt
+from diffmage.ai.prompt_manager import get_commit_prompt, get_why_context_prompt
 from diffmage.generation.models import GenerationResult
 
 
@@ -54,6 +54,29 @@ class CommitMessageGenerator:
 
         except Exception as e:
             raise ValueError(f"Error generating commit message: {e}")
+
+    def enhance_with_why_context(
+        self, result: GenerationResult, why_context: str
+    ) -> GenerationResult:
+        """
+        Enhance existing commit message with external why context
+
+        Args:
+            result: Initial commit message result
+            why_context: External business/contextual information
+
+        Returns:
+            Enhanced GenerationResult with integrated context
+        """
+        if not why_context:
+            return result
+
+        prompt = get_why_context_prompt(str(result), why_context)
+        try:
+            message = self.client.generate_commit_message(prompt)
+            return GenerationResult(message=message.strip())
+        except Exception as e:
+            raise ValueError(f"Error enhancing commit message with why context: {e}")
 
     def _build_prompt(
         self, git_diff: str, file_count: int, lines_added: int, lines_removed: int
