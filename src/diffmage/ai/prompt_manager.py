@@ -32,17 +32,17 @@ def get_commit_prompt(
 
   Instructions:
   - Use conventional commits format:<type>(<optional scope>): <description>
-  - Keep the description under 100 characters
   - Use imperative mood ("add", "fix", "update", not "added", "fixed", "updated")
-  - Focus on WHAT changed and WHY, not HOW. Consider WHAT was impacted and WHY.
+  - Focus on WHAT changed and WHY, not HOW. Consider WHAT was impacted and WHY it was needed.
 
   Common types:
   - feat: New feature, enhancement, or functionality
   - fix: Bug fix or error correction
-  - refactor: Code restructuring without changing functionality
+  - refactor: Code restructuring for readability, performance, or maintainability
   - docs: Documentation changes only
   - test: Adding or updating tests
   - chore: Maintenance, dependencies, build changes
+
 
   <git_diff>
   {diff_content}
@@ -102,7 +102,7 @@ def get_evaluation_prompt(commit_message: str, git_diff: str) -> str:
         * 5 = All changes captured accurately and completely
         * 3 = Main changes described, some details missing
         * 1 = Major changes omitted or misrepresented
-    - WHY (1-5): How clearly does it explain the purpose/reasoning/impact of the changes?
+    - WHY (1-5): How clearly does it explain the purpose/reasoning/impact of the changes? Be more lenient on low impact changes.
     - Scale: 1=Very Poor, 2=Poor, 3=Average, 4=Good, 5=Excellent
     </EVALUATION_CRITERIA>
 
