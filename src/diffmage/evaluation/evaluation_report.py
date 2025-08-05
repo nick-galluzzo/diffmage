@@ -283,7 +283,7 @@ class EvaluationReport:
     def export_csv_report(
         self,
         results: list[tuple[EvaluationResult, str]],
-        filename: str = "evaluation_report.csv",
+        filename: str = ".tmp/evaluation_report.csv",
     ) -> str:
         """
         Export evaluation data to CSV for analysis
@@ -334,7 +334,7 @@ class EvaluationReport:
     def export_json_report(
         self,
         results: list[tuple[EvaluationResult, str]],
-        filename: str = "evaluation_report.json",
+        filename: str = ".tmp/evaluation_report.json",
     ) -> str:
         """Export evaluation data to JSON"""
 
