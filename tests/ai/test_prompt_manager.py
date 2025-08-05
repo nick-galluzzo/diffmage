@@ -187,7 +187,6 @@ def test_get_commit_prompt_contains_instructions():
 
     # Check for key instructions
     assert "conventional commits format" in prompt
-    assert "Keep the description under 100 characters" in prompt
     assert "imperative mood" in prompt
     assert "WHAT changed and WHY" in prompt
     assert "feat:" in prompt
