@@ -1,4 +1,5 @@
 import pytest
+import time
 from rich.progress import Progress
 from diffmage.evaluation.benchmarks import EvaluationBenchmarks
 from diffmage.evaluation.commit_message_evaluator import CommitMessageEvaluator
@@ -397,3 +398,242 @@ class TestEvaluationBenchmarks:
         assert result["min"] == 1.0
         assert result["max"] == 5.0
         assert result["range"] == 4.0
+
+    def test_stability_test_single_run_handles_stdev_gracefully(self, benchmarks):
+        """Test single run doesn't crash when calculating standard deviation"""
+        mock_result = Mock(
+            what_score=4.0, why_score=3.0, overall_score=3.5, confidence=0.8
+        )
+
+        with patch.object(
+            benchmarks.evaluator, "evaluate_commit_message", return_value=mock_result
+        ):
+            result = benchmarks.stability_test("test", "diff", runs=1)
+
+            assert result["statistics"]["execution_time"]["std"] == 0
+            assert result["statistics"]["what"]["std"] == 0
+            assert result["statistics"]["why"]["std"] == 0
+            assert result["statistics"]["overall"]["std"] == 0
+
+    def test_stability_test_zero_variance_threshold_requires_perfect_stability(
+        self, benchmarks
+    ):
+        """Test zero variance threshold requires perfect stability"""
+        mock_result1 = Mock(
+            what_score=4.0, why_score=3.0, overall_score=3.5, confidence=0.8
+        )
+        mock_result2 = Mock(
+            what_score=4.0, why_score=3.0, overall_score=3.5, confidence=0.8
+        )
+
+        with patch.object(
+            benchmarks.evaluator,
+            "evaluate_commit_message",
+            side_effect=[mock_result1, mock_result2],
+        ):
+            result = benchmarks.stability_test(
+                "test", "diff", runs=2, variance_threshold=0.0
+            )
+            assert result["is_stable"] is True
+            assert result["max_variance"] == 0.0
+
+        mock_result3 = Mock(
+            what_score=4.0, why_score=3.0, overall_score=3.5, confidence=0.8
+        )
+        mock_result4 = Mock(
+            what_score=4.1, why_score=3.0, overall_score=3.5, confidence=0.8
+        )
+
+        with patch.object(
+            benchmarks.evaluator,
+            "evaluate_commit_message",
+            side_effect=[mock_result3, mock_result4],
+        ):
+            result = benchmarks.stability_test(
+                "test", "diff", runs=2, variance_threshold=0.0
+            )
+            assert result["is_stable"] is False
+            assert result["max_variance"] == pytest.approx(0.1)
+
+    def test_stability_test_negative_variance_threshold_allowed(self, benchmarks):
+        """Test negative variance threshold is allowed (though not practical)"""
+        mock_result = Mock(
+            what_score=4.0, why_score=3.0, overall_score=3.5, confidence=0.8
+        )
+
+        with patch.object(
+            benchmarks.evaluator, "evaluate_commit_message", return_value=mock_result
+        ):
+            result = benchmarks.stability_test(
+                "test", "diff", runs=2, variance_threshold=-0.1
+            )
+            assert result["variance_threshold"] == -0.1
+            assert result["is_stable"] is False
+
+    def test_stability_test_evaluator_exception_propagates(self, benchmarks):
+        """Test evaluator exceptions are handled appropriately"""
+        with patch.object(
+            benchmarks.evaluator,
+            "evaluate_commit_message",
+            side_effect=RuntimeError("LLM API error"),
+        ):
+            with pytest.raises(RuntimeError, match="LLM API error"):
+                benchmarks.stability_test("test", "diff", runs=2)
+
+    def test_stability_test_evaluator_exception_on_second_run_propagates(
+        self, benchmarks
+    ):
+        """Test evaluator exception on second run still propagates"""
+        mock_result = Mock(
+            what_score=4.0, why_score=3.0, overall_score=3.5, confidence=0.8
+        )
+
+        with patch.object(
+            benchmarks.evaluator,
+            "evaluate_commit_message",
+            side_effect=[mock_result, RuntimeError("Network timeout")],
+        ):
+            with pytest.raises(RuntimeError, match="Network timeout"):
+                benchmarks.stability_test("test", "diff", runs=2)
+
+    def test_calculate_score_variance_single_score_returns_zero_std(self, benchmarks):
+        """Test single score returns std=0 without crashing"""
+        scores = [4.0]
+        result = benchmarks._calculate_score_variance(scores)
+
+        assert result["mean"] == 4.0
+        assert result["median"] == 4.0
+        assert result["std"] == 0
+        assert result["min"] == 4.0
+        assert result["max"] == 4.0
+        assert result["range"] == 0.0
+
+    def test_stability_test_large_runs_parameter_performance(self, benchmarks):
+        """Test large runs parameter doesn't cause performance issues"""
+        mock_result = Mock(
+            what_score=4.0, why_score=3.0, overall_score=3.5, confidence=0.8
+        )
+
+        with patch.object(
+            benchmarks.evaluator, "evaluate_commit_message", return_value=mock_result
+        ):
+            start_time = time.time()
+            result = benchmarks.stability_test("test", "diff", runs=100)
+            execution_time = time.time() - start_time
+
+            assert len(result["results"]) == 100
+            assert result["runs"] == 100
+            assert execution_time < 5.0
+
+    def test_stability_test_extreme_score_values_at_boundaries(self, benchmarks):
+        """Test stability test with extreme score values at boundaries"""
+        mock_result1 = Mock(
+            what_score=0.0, why_score=0.0, overall_score=0.0, confidence=0.0
+        )
+        mock_result2 = Mock(
+            what_score=5.0, why_score=5.0, overall_score=5.0, confidence=1.0
+        )
+
+        with patch.object(
+            benchmarks.evaluator,
+            "evaluate_commit_message",
+            side_effect=[mock_result1, mock_result2],
+        ):
+            result = benchmarks.stability_test("test", "diff", runs=2)
+
+            assert result["statistics"]["what"]["min"] == 0.0
+            assert result["statistics"]["what"]["max"] == 5.0
+            assert result["statistics"]["what"]["range"] == 5.0
+            assert result["is_stable"] is False  # High variance
+
+    def test_stability_test_negative_score_values(self, benchmarks):
+        """Test stability test with negative score values (outside expected range)"""
+        mock_result = Mock(
+            what_score=-1.0, why_score=-2.0, overall_score=-1.5, confidence=0.8
+        )
+
+        with patch.object(
+            benchmarks.evaluator, "evaluate_commit_message", return_value=mock_result
+        ):
+            result = benchmarks.stability_test("test", "diff", runs=2)
+
+            assert result["statistics"]["what"]["mean"] == -1.0
+            assert result["statistics"]["why"]["mean"] == -2.0
+
+    def test_stability_test_very_high_variance_threshold_always_stable(
+        self, benchmarks
+    ):
+        """Test very high variance threshold makes any result stable"""
+        mock_result1 = Mock(
+            what_score=1.0, why_score=1.0, overall_score=1.0, confidence=0.1
+        )
+        mock_result2 = Mock(
+            what_score=5.0, why_score=5.0, overall_score=5.0, confidence=1.0
+        )
+
+        with patch.object(
+            benchmarks.evaluator,
+            "evaluate_commit_message",
+            side_effect=[mock_result1, mock_result2],
+        ):
+            result = benchmarks.stability_test(
+                "test", "diff", runs=2, variance_threshold=10.0
+            )
+
+            assert result["is_stable"] is True
+            assert result["variance_threshold"] == 10.0
+            assert result["max_variance"] < 10.0
+
+    def test_stability_test_very_long_message_and_diff_strings(self, benchmarks):
+        """Test stability test with very long message and diff strings"""
+        long_message = "A" * 10000  # 10KB message
+        long_diff = "B" * 50000  # 50KB diff
+        mock_result = Mock(
+            what_score=4.0, why_score=3.0, overall_score=3.5, confidence=0.8
+        )
+
+        with patch.object(
+            benchmarks.evaluator, "evaluate_commit_message", return_value=mock_result
+        ):
+            result = benchmarks.stability_test(long_message, long_diff, runs=2)
+
+            assert result["message"] == long_message
+            assert len(result["results"]) == 2
+            assert result["runs"] == 2
+
+    def test_stability_test_unicode_and_special_characters(self, benchmarks):
+        """Test stability test with unicode and special characters"""
+        unicode_message = "feat: Add 支持中文 and émojis 🚀 with ñiño characters"
+        special_diff = """
+        + print("Hello 世界! 🌍")
+        - console.log('Goodbye 👋')
+        + # TODO: Fix unicode handling ñoño café
+        """
+        mock_result = Mock(
+            what_score=4.0, why_score=3.0, overall_score=3.5, confidence=0.8
+        )
+
+        with patch.object(
+            benchmarks.evaluator, "evaluate_commit_message", return_value=mock_result
+        ):
+            result = benchmarks.stability_test(unicode_message, special_diff, runs=2)
+
+            assert result["message"] == unicode_message
+            assert len(result["results"]) == 2
+            assert result["runs"] == 2
+
+    def test_stability_test_special_control_characters(self, benchmarks):
+        """Test stability test with control characters and escape sequences"""
+        control_message = "fix: Handle \\n\\t\\r and \\x00 characters"
+        control_diff = "- old\\nline\\twith\\ttabs\n+ new\\nline\\twith\\tspaces"
+        mock_result = Mock(
+            what_score=4.0, why_score=3.0, overall_score=3.5, confidence=0.8
+        )
+
+        with patch.object(
+            benchmarks.evaluator, "evaluate_commit_message", return_value=mock_result
+        ):
+            result = benchmarks.stability_test(control_message, control_diff, runs=2)
+
+            assert result["message"] == control_message
+            assert len(result["results"]) == 2
