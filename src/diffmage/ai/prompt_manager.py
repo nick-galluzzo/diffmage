@@ -81,9 +81,12 @@ def get_why_context_prompt(preliminary_message: str, why_context: str) -> str:
     return f"""You are a Git expert. Your task is to decide whether to enhance a commit message with external context.
 
     STRICT EVALUATION CRITERIA:
-    - Does the context explain a USER PROBLEM or BUSINESS NEED that's not obvious from the code changes?
+    - Does the <EXTERNAL_CONTEXT> explain a USER PROBLEM or BUSINESS NEED that's not obvious from the code changes or <ORIGINAL_COMMIT_MESSAGE>?
     - Does it add meaningful insight about WHY this change was necessary?
-    - Does it avoid redundant technical implementation details already clear from the diff?
+        - WHY is defined as the rationale and intent behind the changes made in a git commit. It goes beyond simply stating what was changed and delves into why those changes were necessary.
+    - Does the <EXTERNAL_CONTEXT> avoid redundant technical implementation details already clear from the diff?
+
+    If any of these are true, return the <ORIGINAL_COMMIT_MESSAGE> EXACTLY as provided.
 
     <ORIGINAL_COMMIT_MESSAGE>
     {preliminary_message}
@@ -94,28 +97,18 @@ def get_why_context_prompt(preliminary_message: str, why_context: str) -> str:
     </EXTERNAL_CONTEXT>
 
     <INSTRUCTIONS>
-    1. First decide: Does this <EXTERNAL_CONTEXT> add valuable WHY information that explains user problems, business needs, or meaningful impact?
+    1. First decide: Does this <EXTERNAL_CONTEXT> add valuable WHY information that explains user problems, business needs, or meaningful impact that is not already clear from the <ORIGINAL_COMMIT_MESSAGE>?
 
     2. If NO (context is technical details, obvious info, or redundant):
     - Return the <ORIGINAL_COMMIT_MESSAGE> EXACTLY as provided
 
     3. If YES (<EXTERNAL_CONTEXT> explains real user problems, value, impact, reasoning, intent, context, background, implications):
-    - Add 1-5 concise sentences after the bullet points
     - Focus on: What problem did this solve? What was the reasoning and intent? What is the context or background? What are the implications and impact?
         - A gold standard "WHY" of a commit message explains the rationale and intent behind the changes made in a git commit. It goes beyond simply stating what was changed and delves into why those changes were necessary.
     - Focus on this scenario: If a developer is to come across this in a git blame months down the road, what would they want and need to know?
     - Keep it under 150 words total addition
+    - DO NOT make up information that is not in the <EXTERNAL_CONTEXT> or that can not be inferred directly from the <ORIGINAL_COMMIT_MESSAGE> + <EXTERNAL_CONTEXT>
     </INSTRUCTIONS>
-
-    EXAMPLES OF GOOD <EXTERNAL_CONTEXT> TO CONSIDER:
-    - "Users were experiencing 3-second page load delays during peak traffic"
-    - "Support team received 50+ tickets weekly about login failures"
-    - "Business requirement to comply with GDPR by Q2"
-
-    EXAMPLES OF BAD <EXTERNAL_CONTEXT> TO IGNORE:
-    - "The previous implementation passed the full result object instead of just the message content"
-    - "This ensures proper test coverage for the new feature"
-    - "Using result.message to follow the pydantic structure"
 
     Output the final commit message only:"""
 
@@ -142,7 +135,6 @@ def get_evaluation_prompt(commit_message: str, git_diff: str) -> str:
     """
 
     return f"""You are an expert code reviewer evaluating commit message quality using Chain-of-Though reasoning.
-
 
     <EVALUATION_CRITERIA>
     - WHAT (1-5): How accurately and completely does the message describe the actual code changes?
