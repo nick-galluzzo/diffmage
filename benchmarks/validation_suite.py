@@ -58,88 +58,309 @@ class EvaluationValidator:
         return [
             # EXCELLENT cases (4.5-5.0)
             ValidationCase(
+                name="excellent_security_with_impact",
+                commit_message="fix: resolve authentication bypass allowing unauthorized admin access\n\nCritical security vulnerability discovered in production where users could escalate privileges by manipulating JWT tokens. Affecting ~2,300 enterprise customers with potential for full system compromise.\n\n The root cause is a missing signature verification in token validation middleware. Impact: Complete authentication bypass, unauthorized admin panel access\nSolution: Implement proper HMAC signature validation with key rotation\nTesting: Verified with penetration testing and security audit\n\nResolves: SEC-2024-001, addresses compliance requirements for SOC2 certification.",
+                git_diff="""--- a/src/middleware/auth.py
+                +++ b/src/middleware/auth.py
+                @@ -1,4 +1,5 @@
+                import jwt
+                +import hmac
+                +import hashlib
+                from flask import request, jsonify
+
+                def verify_token(token):
+                    try:
+                -        payload = jwt.decode(token, verify=False)
+                +        # Verify signature with rotating keys
+                +        payload = jwt.decode(token, get_current_secret_key(), algorithms=['HS256'])
+                +
+                +        # Additional signature verification
+                +        expected_sig = hmac.new(
+                +            get_signing_key().encode(),
+                +            f"{payload['user_id']}{payload['exp']}".encode(),
+                +            hashlib.sha256
+                +        ).hexdigest()
+                +
+                +        if not hmac.compare_digest(payload.get('sig', ''), expected_sig):
+                +            raise jwt.InvalidTokenError("Invalid signature")
+                +
+                        return payload
+                    except jwt.InvalidTokenError:
+                        return None""",
+                expected_score_range=(4.5, 5.0),
+                expected_quality="excellent",
+                description="Security fix with clear business impact, root cause analysis, and comprehensive solution",
+            ),
+            ValidationCase(
+                name="excellent_performance_with_metrics",
+                commit_message="perf: optimize user search query reducing response time from 8s to 200ms\n\nUser search was causing timeouts and abandonment during peak hours. Analysis showed 47% of users abandoned search after 5+ second wait times, directly impacting conversion rates.\n\nProblem: Sequential database queries without indexing on 2M+ user records\nMetrics: 8-12 second response times, 47% abandonment rate, 200+ timeout errors/day\nSolution: Implement composite indexes + query optimization + result pagination\nResults: 200ms average response time, 12% abandonment rate, zero timeouts\n\nA/B testing shows 23% increase in search completion rates.\nEstimated impact: +$180K quarterly revenue from improved user engagement.",
+                git_diff="""--- a/src/models/User.js
+            +++ b/src/models/User.js
+            @@ -10,15 +10,25 @@ const userSchema = new mongoose.Schema({
+            updatedAt: { type: Date, default: Date.now }
+            });
+
+            +// Composite indexes for optimized search
+            +userSchema.index({
+            +  firstName: 'text',
+            +  lastName: 'text',
+            +  email: 'text'
+            +}, {
+            +  weights: { firstName: 10, lastName: 5, email: 1 }
+            +});
+            +userSchema.index({ createdAt: -1 });
+            +userSchema.index({ email: 1 }, { unique: true });
+
+            // Optimized search with pagination and relevance scoring
+            -userSchema.statics.searchUsers = function(searchTerm) {
+            +userSchema.statics.searchUsers = function(searchTerm, page = 1, limit = 20) {
+            const regex = new RegExp(searchTerm, 'i');
+            -  return this.find({
+            +
+            +  return this.find({
+                $or: [
+            -      { email: regex },
+            -      { firstName: regex },
+            -      { lastName: regex }
+            +      { $text: { $search: searchTerm } },
+            +      { email: regex }
+                ]
+            -  });
+            +  }, { score: { $meta: 'textScore' } })
+            +    .sort({ score: { $meta: 'textScore' }, createdAt: -1 })
+            +    .limit(limit)
+            +    .skip((page - 1) * limit);
+            };""",
+                expected_score_range=(4.5, 5.0),
+                expected_quality="excellent",
+                description="Performance optimization with detailed metrics, business impact, and quantified results",
+            ),
+            # GOOD cases (3.5-4.4)
+            ValidationCase(
                 name="security_fix",
                 commit_message="fix: resolve critical SQL injection vulnerability in user authentication",
                 git_diff="""--- a/src/auth/UserAuth.py
-+++ b/src/auth/UserAuth.py
-@@ -23,7 +23,8 @@ class UserAuth:
-     def authenticate_user(self, username, password):
--        query = f"SELECT * FROM users WHERE username='{username}' AND password='{password}'"
-+        query = "SELECT * FROM users WHERE username=? AND password=?"
-+        return self.db.execute(query, (username, password))
--        return self.db.execute(query)""",
-                expected_score_range=(4.0, 5.0),
-                expected_quality="excellent",
+                +++ b/src/auth/UserAuth.py
+                @@ -23,7 +23,8 @@ class UserAuth:
+                    def authenticate_user(self, username, password):
+                -        query = f"SELECT * FROM users WHERE username='{username}' AND password='{password}'"
+                +        query = "SELECT * FROM users WHERE username=? AND password=?"
+                +        return self.db.execute(query, (username, password))
+                -        return self.db.execute(query)""",
+                expected_score_range=(3.5, 4.4),
+                expected_quality="good",
                 description="Clear security fix with good explanation",
             ),
             ValidationCase(
                 name="feature_with_context",
                 commit_message="feat: implement user password reset with email verification\n\nAdds secure password reset flow:\n- Generate time-limited reset tokens\n- Send verification emails\n- Validate tokens before allowing reset\n- Log security events for auditing",
                 git_diff="""--- a/src/auth/PasswordReset.py
-+++ b/src/auth/PasswordReset.py
-@@ -0,0 +1,45 @@
-+import secrets
-+import hashlib
-+from datetime import datetime, timedelta
-+
-+class PasswordReset:
-+    def __init__(self, email_service, user_service):
-+        self.email_service = email_service
-+        self.user_service = user_service
-+
-+    def request_reset(self, email):
-+        user = self.user_service.find_by_email(email)
-+        if not user:
-+            return False  # Don't reveal if email exists
-+
-+        token = secrets.token_urlsafe(32)
-+        expires_at = datetime.now() + timedelta(hours=1)
-+
-+        self.user_service.store_reset_token(user.id, token, expires_at)
-+        self.email_service.send_reset_email(email, token)
-+
-+        return True""",
-                expected_score_range=(4.0, 5.0),
-                expected_quality="excellent",
+                +++ b/src/auth/PasswordReset.py
+                @@ -0,0 +1,45 @@
+                +import secrets
+                +import hashlib
+                +from datetime import datetime, timedelta
+                +
+                +class PasswordReset:
+                +    def __init__(self, email_service, user_service):
+                +        self.email_service = email_service
+                +        self.user_service = user_service
+                +
+                +    def request_reset(self, email):
+                +        user = self.user_service.find_by_email(email)
+                +        if not user:
+                +            return False  # Don't reveal if email exists
+                +
+                +        token = secrets.token_urlsafe(32)
+                +        expires_at = datetime.now() + timedelta(hours=1)
+                +
+                +        self.user_service.store_reset_token(user.id, token, expires_at)
+                +        self.email_service.send_reset_email(email, token)
+                +
+                +        return True""",
+                expected_score_range=(3.5, 4.4),
+                expected_quality="good",
                 description="Comprehensive feature with detailed explanation",
             ),
-            # GOOD cases (3.5-4.0)
             ValidationCase(
                 name="simple_bug_fix",
                 commit_message="fix: handle null values in user profile display",
                 git_diff="""--- a/src/components/UserProfile.jsx
-+++ b/src/components/UserProfile.jsx
-@@ -15,7 +15,7 @@ const UserProfile = ({ user }) => {
-     <div className="profile-container">
-       <h2>{user.name}</h2>
--      <p>Email: {user.email}</p>
-+      <p>Email: {user.email || 'Not provided'}</p>
--      <p>Bio: {user.bio}</p>
-+      <p>Bio: {user.bio || 'No bio available'}</p>
-     </div>
-   );""",
-                expected_score_range=(3.0, 4.5),
+                +++ b/src/components/UserProfile.jsx
+                @@ -15,7 +15,7 @@ const UserProfile = ({ user }) => {
+                    <div className="profile-container">
+                    <h2>{user.name}</h2>
+                -      <p>Email: {user.email}</p>
+                +      <p>Email: {user.email || 'Not provided'}</p>
+                -      <p>Bio: {user.bio}</p>
+                +      <p>Bio: {user.bio || 'No bio available'}</p>
+                    </div>
+                );""",
+                expected_score_range=(3.5, 4.4),
                 expected_quality="good",
                 description="Clear bug fix, could use more detail",
             ),
-            # AVERAGE cases (2.5-3.5)
+            # AVERAGE cases (2.5-3.4)
+            ValidationCase(
+                name="average_refactor",
+                commit_message="refactor: move validation logic to separate service",
+                git_diff="""--- a/src/controllers/UserController.js
+        +++ b/src/controllers/UserController.js
+        @@ -5,12 +5,7 @@ class UserController {
+        async createUser(userData) {
+            try {
+        -      // Validate email format
+        -      if (!userData.email || !userData.email.includes('@')) {
+        -        throw new Error('Invalid email');
+        -      }
+        -      // Validate required fields
+        -      if (!userData.firstName || !userData.lastName) {
+        -        throw new Error('Missing required fields');
+        -      }
+        +      ValidationService.validateUserData(userData);
+
+            const user = await User.create(userData);
+            return { success: true, user };
+        @@ -18,4 +13,17 @@ class UserController {
+            return { success: false, error: error.message };
+            }
+        }
+        +}
+        +
+        +--- /dev/null
+        ++++ b/src/services/ValidationService.js
+        @@ -0,0 +1,15 @@
+        +class ValidationService {
+        +  static validateUserData(userData) {
+        +    if (!userData.email || !userData.email.includes('@')) {
+        +      throw new Error('Invalid email');
+        +    }
+        +
+        +    if (!userData.firstName || !userData.lastName) {
+        +      throw new Error('Missing required fields');
+        +    }
+        +  }
+        }""",
+                expected_score_range=(2.5, 3.4),
+                expected_quality="average",
+                description="Basic refactor, describes what but minimal why context",
+            ),
+            ValidationCase(
+                name="average_bug_fix",
+                commit_message="fix: prevent crash when user profile is empty",
+                git_diff="""--- a/src/components/UserProfile.jsx
+        +++ b/src/components/UserProfile.jsx
+        @@ -8,7 +8,7 @@ const UserProfile = ({ user }) => {
+        return (
+            <div className="profile-container">
+            <h2>{user.name}</h2>
+        -      <p>Bio: {user.bio}</p>
+        +      <p>Bio: {user.bio || 'No bio provided'}</p>
+        -      <p>Joined: {new Date(user.joinedAt).toLocaleDateString()}</p>
+        +      <p>Joined: {user.joinedAt ? new Date(user.joinedAt).toLocaleDateString() : 'Unknown'}</p>
+            </div>
+        );
+        };""",
+                expected_score_range=(2.5, 3.4),
+                expected_quality="average",
+                description="Fixes the issue but doesn't explain impact or root cause",
+            ),
+            ValidationCase(
+                name="average_feature_basic",
+                commit_message="feat: add dark mode toggle to settings page\n\n- Add toggle switch component\n- Store preference in localStorage\n- Apply theme on page load",
+                git_diff="""--- a/src/pages/Settings.jsx
+        +++ b/src/pages/Settings.jsx
+        @@ -1,4 +1,5 @@
+        import React, { useState } from 'react';
+        +import ToggleSwitch from '../components/ToggleSwitch';
+
+        const Settings = () => {
+        const [notifications, setNotifications] = useState(true);
+        +  const [darkMode, setDarkMode] = useState(
+        +    localStorage.getItem('darkMode') === 'true'
+        +  );
+
+        +  const handleDarkModeToggle = (enabled) => {
+        +    setDarkMode(enabled);
+        +    localStorage.setItem('darkMode', enabled);
+        +    document.body.classList.toggle('dark-mode', enabled);
+        +  };
+
+        return (
+            <div className="settings-page">
+            <h1>Settings</h1>
+
+            <div className="setting-item">
+                <label>Enable Notifications</label>
+                <ToggleSwitch
+                checked={notifications}
+                onChange={setNotifications}
+                />
+            </div>
+
+        +      <div className="setting-item">
+        +        <label>Dark Mode</label>
+        +        <ToggleSwitch
+        +          checked={darkMode}
+        +          onChange={handleDarkModeToggle}
+        +        />
+        +      </div>
+            </div>
+        );
+        };""",
+                expected_score_range=(2.5, 3.4),
+                expected_quality="average",
+                description="Describes the feature clearly but lacks user motivation or business context",
+            ),
+            ValidationCase(
+                name="average_docs_update",
+                commit_message="docs: update installation instructions for new deployment process",
+                git_diff="""--- a/README.md
+        +++ b/README.md
+        @@ -15,8 +15,12 @@ A modern web application for managing user accounts.
+
+        ## Installation
+
+        -1. Clone the repository
+        -2. Run `npm install`
+        -3. Start with `npm start`
+        +1. Clone the repository: `git clone https://github.com/company/app.git`
+        +2. Install dependencies: `npm install`
+        +3. Copy environment file: `cp .env.example .env`
+        +4. Configure your database settings in `.env`
+        +5. Run database migrations: `npm run migrate`
+        +6. Start the application: `npm start`
+
+        ## Configuration
+        @@ -25,4 +29,8 @@ A modern web application for managing user accounts.
+
+        - `DATABASE_URL` - Your database connection string
+        - `JWT_SECRET` - Secret key for JWT tokens
+        +- `SMTP_HOST` - Email server host
+        +- `SMTP_PORT` - Email server port
+        +- `SMTP_USER` - Email username
+        +- `SMTP_PASS` - Email password""",
+                expected_score_range=(2.5, 3.4),
+                expected_quality="average",
+                description="Updates documentation but doesn't explain why changes were needed",
+            ),
+            # POOR cases (1.5-2.4)
             ValidationCase(
                 name="generic_update",
                 commit_message="update user component",
                 git_diff="""--- a/src/components/User.jsx
-+++ b/src/components/User.jsx
-@@ -10,6 +10,7 @@ const User = ({ userData }) => {
-   return (
-     <div className="user">
-       <span>{userData.name}</span>
-+      <span>{userData.role}</span>
-     </div>
-   );""",
-                expected_score_range=(2.0, 3.5),
-                expected_quality="average",
+                +++ b/src/components/User.jsx
+                @@ -10,6 +10,7 @@ const User = ({ userData }) => {
+                return (
+                    <div className="user">
+                    <span>{userData.name}</span>
+                +      <span>{userData.role}</span>
+                    </div>
+                );""",
+                expected_score_range=(1.5, 2.4),
+                expected_quality="poor",
                 description="Vague message, minimal change",
             ),
-            # POOR cases (1.5-2.5)
             ValidationCase(
                 name="meaningless_message",
                 commit_message="fix stuff",
@@ -152,11 +373,11 @@ class EvaluationValidator:
 -  return data.map(item => item.value);
 +  return data.map(item => item.value || 0);
  }""",
-                expected_score_range=(1.0, 2.5),
+                expected_score_range=(1.5, 2.4),
                 expected_quality="poor",
                 description="Meaningless commit message",
             ),
-            # VERY POOR cases (1.0-2.0)
+            # VERY POOR cases (1.0-1.4)
             ValidationCase(
                 name="gibberish",
                 commit_message="asdf jkl; qwerty",
@@ -166,7 +387,7 @@ class EvaluationValidator:
  // Test file
  console.log('hello');
 +console.log('world');""",
-                expected_score_range=(1.0, 2.0),
+                expected_score_range=(1.0, 1.4),
                 expected_quality="very_poor",
                 description="Nonsensical commit message",
             ),
@@ -180,7 +401,7 @@ class EvaluationValidator:
                 name="empty_message",
                 commit_message="",
                 git_diff="--- a/file.txt\n+++ b/file.txt\n@@ -1 +1,2 @@\n hello\n+world",
-                expected_score_range=(1.0, 2.0),
+                expected_score_range=(1.0, 1.4),
                 expected_quality="very_poor",
                 description="Empty commit message",
             ),
@@ -191,7 +412,7 @@ class EvaluationValidator:
                 + "long commit message that goes on and on and provides way too much detail about a simple change "
                 * 10,
                 git_diff="--- a/file.txt\n+++ b/file.txt\n@@ -1 +1,2 @@\n hello\n+world",
-                expected_score_range=(1.0, 3.0),
+                expected_score_range=(1.0, 1.4),
                 expected_quality="poor",
                 description="Excessively long commit message",
             ),
@@ -204,7 +425,7 @@ class EvaluationValidator:
  def process_input(text):
 +    text = text.encode('utf-8').decode('utf-8')
      return text.strip()""",
-                expected_score_range=(3.0, 4.5),
+                expected_score_range=(3.5, 4.4),
                 expected_quality="good",
                 description="Special characters and emojis",
             ),
@@ -212,7 +433,7 @@ class EvaluationValidator:
                 name="no_diff",
                 commit_message="fix: important bug fix",
                 git_diff="",
-                expected_score_range=(1.0, 3.0),
+                expected_score_range=(1.0, 2.4),
                 expected_quality="poor",
                 description="No diff provided",
             ),
@@ -233,7 +454,7 @@ class EvaluationValidator:
 +
 +def reset_password(email):
 +    send_reset_email(email)""",
-                expected_score_range=(1.0, 3.0),
+                expected_score_range=(1.0, 2.4),
                 expected_quality="poor",
                 description="Merge commit (usually auto-generated)",
             ),
