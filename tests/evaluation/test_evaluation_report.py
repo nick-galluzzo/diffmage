@@ -381,8 +381,8 @@ class TestEvaluationReport:
 
         assert stats["quality_distribution"]["Excellent"] == 0
         assert stats["quality_distribution"]["Good"] == 1
-        assert stats["quality_distribution"]["Average"] == 0
-        assert stats["quality_distribution"]["Poor"] == 1
+        assert stats["quality_distribution"]["Average"] == 1
+        assert stats["quality_distribution"]["Poor"] == 0
 
     def test_model_usage_calculations(self, report):
         """Test model usage calculations"""

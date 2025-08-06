@@ -25,19 +25,19 @@ class QualityRater:
         Returns one of:
         - Excellent (4.5-5.0)
         - Good (3.5-4.4)
-        - Average (2.6-3.5)
-        - Poor (1.6-2.5)
-        - Very Poor (0.0-1.5)
+        - Average (2.5-3.4)
+        - Poor (1.5-2.4)
+        - Very Poor (1.0-1.4)
         """
-        if score >= ScoreThresholds.EXCELLENT:
+        if score >= ScoreThresholds.EXCELLENT:  # 4.5-5.0
             return "Excellent"
-        elif score > ScoreThresholds.GOOD:
+        elif score >= ScoreThresholds.GOOD:  # 3.5-4.4
             return "Good"
-        elif score > ScoreThresholds.AVERAGE:
+        elif score >= ScoreThresholds.AVERAGE:  # 2.5-3.4
             return "Average"
-        elif score > ScoreThresholds.POOR:
+        elif score >= ScoreThresholds.POOR:  # 1.5-2.4
             return "Poor"
-        else:
+        else:  # 1.0-1.4
             return "Very Poor"
 
     @staticmethod
