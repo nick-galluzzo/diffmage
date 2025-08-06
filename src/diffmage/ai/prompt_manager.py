@@ -315,6 +315,8 @@ def get_evaluation_prompt(commit_message: str, git_diff: str) -> str:
     - Keep it concise (3-5 sentences)
     </REASONING_INSTRUCTIONS>
 
+    ONLY RETURN THE JSON RESPONSE, NOTHING ELSE.
+
     REQUIRED JSON RESPONSE:
     {{
         "what_score": <1-5>,
