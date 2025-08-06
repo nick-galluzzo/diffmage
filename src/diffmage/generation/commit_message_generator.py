@@ -14,7 +14,7 @@ class CommitMessageGenerator:
     This specialist focuses solely on the generation logic and prompt handling
     """
 
-    def __init__(self, model_name: Optional[str] = None, temperature: float = 0.1):
+    def __init__(self, model_name: Optional[str] = None, temperature: float = 0.0):
         """
         Initialize the LLM Generator
 

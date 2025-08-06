@@ -68,18 +68,18 @@ def test_ai_client_initialization():
     client = AIClient(model_name="openai/gpt-4o-mini")
 
     assert client.model_config.name == "openai/gpt-4o-mini"
-    assert client.temperature == 0.1
+    assert client.temperature == 0.0
     assert client.max_tokens == 1000
 
 
 def test_ai_client_initialization_with_custom_params():
     """Test AIClient initialization with custom parameters."""
     client = AIClient(
-        model_name="anthropic/claude-haiku", temperature=0.5, max_tokens=2000
+        model_name="anthropic/claude-haiku", temperature=0.0, max_tokens=2000
     )
 
     assert client.model_config.name == "anthropic/claude-haiku"
-    assert client.temperature == 0.5
+    assert client.temperature == 0.0
     assert client.max_tokens == 2000
 
 
@@ -109,7 +109,7 @@ def test_generate_commit_message_success(mock_completion, mock_ai_response):
     mock_completion.assert_called_once()
     call_args = mock_completion.call_args
     assert call_args[1]["model"] == "openai/gpt-4o-mini"
-    assert call_args[1]["temperature"] == 0.1
+    assert call_args[1]["temperature"] == 0.0
     assert call_args[1]["max_tokens"] == 1000
     assert call_args[1]["stream"] is False
 
@@ -144,7 +144,7 @@ def test_generate_commit_message_with_custom_params(
 
     # Create client with custom parameters
     client = AIClient(
-        model_name="anthropic/claude-haiku", temperature=0.7, max_tokens=1500
+        model_name="anthropic/claude-haiku", temperature=0.0, max_tokens=1500
     )
     result = client.generate_commit_message(mock_commit_analysis)
 
@@ -155,7 +155,7 @@ def test_generate_commit_message_with_custom_params(
     mock_completion.assert_called_once()
     call_args = mock_completion.call_args
     assert call_args[1]["model"] == "anthropic/claude-haiku"
-    assert call_args[1]["temperature"] == 0.7
+    assert call_args[1]["temperature"] == 0.0
     assert call_args[1]["max_tokens"] == 1500
 
 
@@ -215,7 +215,7 @@ def test_evaluate_with_llm_success(mock_completion, mock_evaluation_response):
     mock_completion.assert_called_once()
     call_args = mock_completion.call_args
     assert call_args[1]["model"] == "openai/gpt-4o-mini"
-    assert call_args[1]["temperature"] == 0.1
+    assert call_args[1]["temperature"] == 0.0
     assert call_args[1]["max_tokens"] == 1000
     assert call_args[1]["stream"] is False
 
@@ -269,7 +269,7 @@ def test_evaluate_with_llm_with_custom_params(
 
     # Create client with custom parameters
     client = AIClient(
-        model_name="anthropic/claude-haiku", temperature=0.7, max_tokens=1500
+        model_name="anthropic/claude-haiku", temperature=0.0, max_tokens=1500
     )
     evaluation_prompt = "test evaluation prompt"
     result = client.evaluate_with_llm(evaluation_prompt)
@@ -281,5 +281,5 @@ def test_evaluate_with_llm_with_custom_params(
     mock_completion.assert_called_once()
     call_args = mock_completion.call_args
     assert call_args[1]["model"] == "anthropic/claude-haiku"
-    assert call_args[1]["temperature"] == 0.7
+    assert call_args[1]["temperature"] == 0.0
     assert call_args[1]["max_tokens"] == 1500

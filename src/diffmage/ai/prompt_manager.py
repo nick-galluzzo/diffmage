@@ -224,7 +224,7 @@ def get_evaluation_prompt(commit_message: str, git_diff: str) -> str:
         return false;
 
     -  const emailRegex = /S+@S+/;
-    +  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{(2,)}$/;
+    +  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z](2,)$/;
     return emailRegex.test(email)
 
     ANALYSIS:

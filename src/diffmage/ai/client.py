@@ -22,7 +22,7 @@ class AIClient:
     """
 
     def __init__(
-        self, model_name: str, temperature: float = 0.1, max_tokens: int = 1000
+        self, model_name: str, temperature: float = 0.0, max_tokens: int = 1000
     ):
         self.model_config = get_model_by_name(model_name)
         self.temperature = temperature

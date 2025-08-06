@@ -36,9 +36,9 @@ class TestCommitMessageGenerator:
 
     def test_init_with_custom_temperature(self):
         """Test CommitMessageGenerator initialization with custom temperature."""
-        generator = CommitMessageGenerator(temperature=0.5)
+        generator = CommitMessageGenerator(temperature=0.0)
 
-        assert generator.client.temperature == 0.5
+        assert generator.client.temperature == 0.0
 
     def test_generate_commit_message_success(self):
         """Test successful commit message generation."""
