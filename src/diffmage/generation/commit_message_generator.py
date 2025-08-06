@@ -71,7 +71,7 @@ class CommitMessageGenerator:
         if not why_context:
             return result
 
-        prompt = get_why_context_prompt(str(result), why_context)
+        prompt = get_why_context_prompt(result.message, why_context)
         try:
             message = self.client.generate_commit_message(prompt)
             return GenerationResult(message=message.strip())
