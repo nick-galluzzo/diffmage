@@ -128,6 +128,7 @@ def get_evaluation_system_prompt() -> str:
     - Descriptive but brief
     - Written in imperative mood
     - Focused on the purpose and impact of changes
+    - Focus on the accuracy, validity, and truthfulness of what is being described.
     """
 
 
@@ -138,13 +139,15 @@ def get_evaluation_prompt(commit_message: str, git_diff: str) -> str:
 
     return f"""You are an expert code reviewer evaluating commit message quality using Chain-of-Though reasoning.
 
+    If the commit message is untruthful, inaccurate, or misrepresents the code changes, return a score of 1 for both WHAT and WHY.
+
     <EVALUATION_CRITERIA>
     - WHAT (1-5): How accurately and completely does the message describe the actual code changes?
         * 5 = All high impactchanges captured accurately and completely with precise details.
         * 4 = Main changes described accurately and clearly, only minor details missing
         * 3 = Core changes described, some important details missing
         * 2 = Basic changes mentioned, significant gaps in description
-        * 1 = Major changes omitted or misrepresented
+        * 1 = Major changes omitted, misrepresented, not described, or inaccurate.
 
     - WHY (1-5): How clearly does it explain the PURPOSE/REASONING/IMPACT of the changes?
         * 5 = Clear user problem + impact, intent, reasoning, context, background, implications explained.
