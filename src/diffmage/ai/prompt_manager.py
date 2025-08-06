@@ -94,9 +94,15 @@ def get_why_context_prompt(preliminary_message: str, why_context: str) -> str:
     </EXTERNAL_CONTEXT>
 
     <INSTRUCTION>
+    Do NOT repeat anything that is already in the preliminary commit message.
+
+    Only add WHY context if it is relevant to the changes and is actually helpful for generating a better commit message.
+
+    Only add WHY context if it is a medium to high impact change.
+
     Lead with the problem. Start the WHY by clearly stating the problem or issue that the change is solving, state the solution, and end with the benefit. Be concise but thorough.
 
-    Based on the provided information, return the exact <preliminary_commit_message> with the enhanced "why" from the external context. Ensure the WHY follows the Conventional Commits format, ensuring the body clearly explains the problem and the benefit/impact of the change.
+    Based on the provided information, return the exact <preliminary_commit_message> with the enhanced "why" from the external context. Ensure the WHY follows the Conventional Commits format, ensuring the body explains the problem and the benefit/impact of the change while being concise and to the point.
 
     Do not include any additional explanatory text, commentary, or conversational filler. The output should be ready to be copied and pasted directly into a `git commit` command.
     </INSTRUCTION>
