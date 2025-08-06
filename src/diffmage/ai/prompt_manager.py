@@ -110,7 +110,9 @@ def get_why_context_prompt(preliminary_message: str, why_context: str) -> str:
     - DO NOT make up information that is not in the <EXTERNAL_CONTEXT> or that can not be inferred directly from the <ORIGINAL_COMMIT_MESSAGE> + <EXTERNAL_CONTEXT>
     </INSTRUCTIONS>
 
-    Output the final commit message only:"""
+    ONLY RETURN THE FINAL COMMIT MESSAGE that will be submitted to the git commit. DO NOT INCLUDE YOUR REASONING OR ANYTHING ELSE.
+
+    final commit message:"""
 
 
 # Evaluation prompts
