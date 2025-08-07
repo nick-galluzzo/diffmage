@@ -1,9 +1,6 @@
 """
 Evaluation *Smoke Test* Validation Suite for DiffMage
 
-This script performs fundamental sanity checks on your LLM evaluator to ensure
-it's working correctly before running extensive benchmarks.
-
 Usage:
     python validation_suite.py --all
     python validation_suite.py --test obvious-cases

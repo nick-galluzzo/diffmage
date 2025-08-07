@@ -1,7 +1,5 @@
 """
 WHY Context Enhancement Benchmarking Suite
-
-Add this to your benchmarks directory to test WHY context enhancement quality
 """
 
 from typing import List, Dict, Any, Optional

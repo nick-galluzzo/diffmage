@@ -1,9 +1,6 @@
 """
 Stability Benchmarking Script for DiffMage
 
-This script uses your existing EvaluationBenchmarks class to test evaluation
-stability across various real commit examples and scenarios.
-
 Usage:
     python benchmark_stability.py --repo-path /path/to/repo --runs 10
     python benchmark_stability.py --commit-range "HEAD~20..HEAD" --runs 5
@@ -618,7 +615,7 @@ def main():
         description="Stability Benchmarking Script for DiffMage"
     )
     parser.add_argument("--repo-path", default=".", help="Path to git repository")
-    parser.add_argument("--model", help="AI model to test (default: uses your default)")
+    parser.add_argument("--model", help="AI model to test (default: uses default)")
     parser.add_argument("--runs", type=int, default=5, help="Number of runs per test")
     parser.add_argument(
         "--variance-threshold",
