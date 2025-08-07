@@ -314,7 +314,7 @@ wheels = [
 
 [[package]]
 name = "diffmage"
-version = "0.5.0"
+version = "0.6.2"
 source = { editable = "." }
 dependencies = [
     { name = "gitpython" },

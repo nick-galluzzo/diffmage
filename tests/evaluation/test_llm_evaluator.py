@@ -20,9 +20,9 @@ class TestLLMEvaluator:
 
     def test_init_with_custom_temperature(self):
         """Test LLMEvaluator initialization with custom temperature."""
-        evaluator = CommitMessageEvaluator(temperature=0.5)
+        evaluator = CommitMessageEvaluator(temperature=0.0)
 
-        assert evaluator.ai_client.temperature == 0.5
+        assert evaluator.ai_client.temperature == 0.0
 
     def test_evaluate_commit_message_success(self):
         """Test successful commit message evaluation."""

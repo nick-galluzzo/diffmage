@@ -109,3 +109,70 @@ class TestGenerationService:
         assert call_args[0][1] == mock_commit_analysis.total_files
         assert call_args[0][2] == mock_commit_analysis.total_lines_added
         assert call_args[0][3] == mock_commit_analysis.total_lines_removed
+
+    @patch("diffmage.generation.service.CommitMessageGenerator")
+    @patch("diffmage.generation.service.GitDiffParser")
+    def test_generate_commit_message_with_why_context(
+        self, mock_git_parser_class, mock_generator_class, mock_commit_analysis
+    ):
+        """Test commit message generation with why context enhancement."""
+        mock_parser = Mock()
+        mock_parser.parse_staged_changes.return_value = mock_commit_analysis
+        mock_git_parser_class.return_value = mock_parser
+
+        mock_generator = Mock()
+        initial_result = GenerationResult(message="feat: add new feature")
+        enhanced_result = GenerationResult(
+            message="feat: add user authentication for improved security"
+        )
+        mock_generator.generate_commit_message.return_value = initial_result
+        mock_generator.enhance_with_why_context.return_value = enhanced_result
+        mock_generator_class.return_value = mock_generator
+
+        # Create service and request
+        service = GenerationService(model_name="openai/gpt-4o-mini")
+        request = GenerationRequest(repo_path=".")
+        why_context = "Adding authentication to improve security posture"
+
+        # Execute
+        result = service.generate_commit_message(request, why_context=why_context)
+
+        # Verify
+        assert isinstance(result, GenerationResult)
+        assert result.message == "feat: add user authentication for improved security"
+
+        # Verify both methods were called
+        mock_generator.generate_commit_message.assert_called_once()
+        mock_generator.enhance_with_why_context.assert_called_once_with(
+            initial_result, why_context
+        )
+
+    @patch("diffmage.generation.service.CommitMessageGenerator")
+    @patch("diffmage.generation.service.GitDiffParser")
+    def test_generate_commit_message_with_empty_why_context(
+        self, mock_git_parser_class, mock_generator_class, mock_commit_analysis
+    ):
+        """Test commit message generation with empty why context (should not call enhance)."""
+        mock_parser = Mock()
+        mock_parser.parse_staged_changes.return_value = mock_commit_analysis
+        mock_git_parser_class.return_value = mock_parser
+
+        mock_generator = Mock()
+        initial_result = GenerationResult(message="feat: add new feature")
+        mock_generator.generate_commit_message.return_value = initial_result
+        mock_generator_class.return_value = mock_generator
+
+        # Create service and request
+        service = GenerationService(model_name="openai/gpt-4o-mini")
+        request = GenerationRequest(repo_path=".")
+
+        # Execute with empty why_context
+        result = service.generate_commit_message(request, why_context="")
+
+        # Verify
+        assert isinstance(result, GenerationResult)
+        assert result.message == "feat: add new feature"
+
+        # Verify enhance was NOT called
+        mock_generator.generate_commit_message.assert_called_once()
+        mock_generator.enhance_with_why_context.assert_not_called()

@@ -25,7 +25,7 @@ class CommitMessageEvaluator:
 
     """
 
-    def __init__(self, model_name: Optional[str] = None, temperature: float = 0.7):
+    def __init__(self, model_name: Optional[str] = None, temperature: float = 0.0):
         """
         Initialize the LLM evaluator.
 

@@ -15,6 +15,9 @@ def generate(
         False, "--list-models", help="List all available models"
     ),
     repo_path: str = typer.Option(".", "--repo", "-r"),
+    why_context: str = typer.Option(
+        None, "--context", "-c", help="Context to use to improve the WHY generation"
+    ),
 ) -> None:
     """Generate commit message from staged changes"""
 
@@ -33,7 +36,7 @@ def generate(
     service = GenerationService(model_name=model_config.name)
     request = GenerationRequest(repo_path=repo_path)
 
-    result = service.generate_commit_message(request)
+    result = service.generate_commit_message(request, why_context)
 
     console.print(f"[green]Commit message:[/green] {result.message}")
 

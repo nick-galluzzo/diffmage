@@ -12,7 +12,9 @@ class GenerationService:
     def __init__(self, model_name: Optional[str] = None) -> None:
         self.generator = CommitMessageGenerator(model_name=model_name)
 
-    def generate_commit_message(self, request: GenerationRequest) -> GenerationResult:
+    def generate_commit_message(
+        self, request: GenerationRequest, why_context: Optional[str] = None
+    ) -> GenerationResult:
         """
         Generate a commit message from staged changes
 
@@ -32,5 +34,11 @@ class GenerationService:
         result: GenerationResult = self.generator.generate_commit_message(
             git_diff, file_count, lines_added, lines_removed
         )
+
+        # handle why context separately to separate concerns and handle llm focus.
+        # handling why context in the intial generate_commit_message was adding too
+        # much noise to the commit message generation.
+        if why_context:
+            return self.generator.enhance_with_why_context(result, why_context)
 
         return result

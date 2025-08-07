@@ -36,9 +36,9 @@ class TestCommitMessageGenerator:
 
     def test_init_with_custom_temperature(self):
         """Test CommitMessageGenerator initialization with custom temperature."""
-        generator = CommitMessageGenerator(temperature=0.5)
+        generator = CommitMessageGenerator(temperature=0.0)
 
-        assert generator.client.temperature == 0.5
+        assert generator.client.temperature == 0.0
 
     def test_generate_commit_message_success(self):
         """Test successful commit message generation."""
@@ -97,3 +97,58 @@ class TestCommitMessageGenerator:
             mock_get_prompt.assert_called_once_with(
                 diff_content="test diff", file_count=1, lines_added=5, lines_removed=2
             )
+
+    def test_enhance_with_why_context_success(self):
+        """Test successful enhancement with why context."""
+        generator = CommitMessageGenerator(model_name="openai/gpt-4o-mini")
+        initial_result = GenerationResult(message="feat: add authentication")
+        why_context = "Implementing OAuth2 for better security compliance"
+
+        with patch(
+            "diffmage.generation.commit_message_generator.get_why_context_prompt"
+        ) as mock_get_prompt:
+            mock_get_prompt.return_value = "Enhanced prompt"
+
+            with patch.object(
+                generator.client,
+                "generate_commit_message",
+                return_value="feat: implement OAuth2 authentication for security compliance",
+            ):
+                result = generator.enhance_with_why_context(initial_result, why_context)
+
+                assert isinstance(result, GenerationResult)
+                assert (
+                    result.message
+                    == "feat: implement OAuth2 authentication for security compliance"
+                )
+                mock_get_prompt.assert_called_once_with(
+                    "feat: add authentication", why_context
+                )
+
+    def test_enhance_with_why_context_empty_context(self):
+        """Test enhancement with empty why context returns original result."""
+        generator = CommitMessageGenerator()
+        initial_result = GenerationResult(message="feat: add authentication")
+
+        result = generator.enhance_with_why_context(initial_result, "")
+
+        assert result is initial_result
+
+    def test_enhance_with_why_context_ai_error(self):
+        """Test enhancement when AI call fails."""
+        generator = CommitMessageGenerator()
+        initial_result = GenerationResult(message="feat: add authentication")
+        why_context = "Adding for security"
+
+        with patch(
+            "diffmage.generation.commit_message_generator.get_why_context_prompt"
+        ):
+            with patch.object(
+                generator.client,
+                "generate_commit_message",
+                side_effect=Exception("API Error"),
+            ):
+                with pytest.raises(
+                    ValueError, match="Error enhancing commit message with why context"
+                ):
+                    generator.enhance_with_why_context(initial_result, why_context)
