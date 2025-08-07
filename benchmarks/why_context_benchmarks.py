@@ -10,12 +10,19 @@ from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 from rich import box
-
+from enum import Enum
 from diffmage.generation.commit_message_generator import CommitMessageGenerator
 from diffmage.generation.models import GenerationResult
 from diffmage.evaluation.commit_message_evaluator import CommitMessageEvaluator
 
 console = Console()
+
+
+class ContextQuality(str, Enum):
+    GOOD = "good"
+    BAD = "bad"
+    TECHNICAL = "technical"
+    REDUNDANT = "redundant"
 
 
 @dataclass
@@ -28,7 +35,7 @@ class WhyContextTestCase:
     why_context: str
     should_enhance: bool  # Should this context actually improve the message?
     expected_improvement: float  # Expected WHY score improvement (0 if no enhancement)
-    context_quality: str  # "good", "bad", "technical", "redundant"
+    context_quality: ContextQuality
 
 
 class WhyContextBenchmarkSuite:
@@ -57,7 +64,7 @@ class WhyContextBenchmarkSuite:
                 why_context="Users were experiencing app crashes during login attempts. Support team received 47 crash reports in the last week, all traced to this validation issue. This fix prevents the crashes and improves user experience.",
                 should_enhance=True,
                 expected_improvement=1.5,
-                context_quality="good",
+                context_quality=ContextQuality.GOOD,
             ),
             WhyContextTestCase(
                 name="performance_impact_context",
@@ -80,7 +87,7 @@ class WhyContextBenchmarkSuite:
                 why_context="User search was taking 8-12 seconds with 100k+ users. Customer support reported users abandoning the search feature. This optimization reduces search time to under 500ms, improving user engagement.",
                 should_enhance=True,
                 expected_improvement=2.0,
-                context_quality="good",
+                context_quality=ContextQuality.GOOD,
             ),
             WhyContextTestCase(
                 name="compliance_requirement_context",
@@ -106,7 +113,7 @@ class WhyContextBenchmarkSuite:
                 why_context="Legal compliance requirement for GDPR and HIPAA. Audit found unencrypted PII in database. This change is required before Q2 compliance review to avoid potential $2.7M fine.",
                 should_enhance=True,
                 expected_improvement=1.8,
-                context_quality="good",
+                context_quality=ContextQuality.GOOD,
             ),
             # BAD WHY CONTEXT (should NOT enhance)
             WhyContextTestCase(
@@ -123,7 +130,7 @@ class WhyContextBenchmarkSuite:
                 why_context="The previous implementation had validation logic directly in the controller. This refactor moves it to a separate UserValidator class following single responsibility principle and makes the code more maintainable.",
                 should_enhance=False,
                 expected_improvement=0.0,
-                context_quality="technical",
+                context_quality=ContextQuality.TECHNICAL,
             ),
             WhyContextTestCase(
                 name="redundant_context",
@@ -137,7 +144,7 @@ class WhyContextBenchmarkSuite:
                 why_context="This change fixes null pointer exceptions when email is null by adding a null check before calling includes method.",
                 should_enhance=False,
                 expected_improvement=0.0,
-                context_quality="redundant",
+                context_quality=ContextQuality.REDUNDANT,
             ),
             WhyContextTestCase(
                 name="test_coverage_context",
@@ -153,7 +160,7 @@ class WhyContextBenchmarkSuite:
                 why_context="Added comprehensive test coverage for the authentication service to ensure code quality and catch regressions. Tests cover both success and failure scenarios.",
                 should_enhance=False,
                 expected_improvement=0.0,
-                context_quality="technical",
+                context_quality=ContextQuality.TECHNICAL,
             ),
             # BORDERLINE CASES
             WhyContextTestCase(
@@ -171,7 +178,7 @@ class WhyContextBenchmarkSuite:
                 why_context="The mobile app team requested timestamp information for caching purposes. This was causing cache invalidation issues. Also updated the response format to be more consistent with other endpoints.",
                 should_enhance=True,
                 expected_improvement=1.0,
-                context_quality="good",  # Mixed but has user problem
+                context_quality=ContextQuality.GOOD,  # Mixed but has user problem
             ),
         ]
 
@@ -246,9 +253,14 @@ class WhyContextBenchmarkSuite:
         # Calculate summary statistics
         decision_accuracy = (correct_decisions / len(test_cases)) * 100
         avg_improvement = total_improvement / len(test_cases)
-        good_context_cases = [r for r in results if r["context_quality"] == "good"]
+        good_context_cases = [
+            r for r in results if r["context_quality"] == ContextQuality.GOOD
+        ]
         bad_context_cases = [
-            r for r in results if r["context_quality"] in ["technical", "redundant"]
+            r
+            for r in results
+            if r["context_quality"]
+            in [ContextQuality.TECHNICAL, ContextQuality.REDUNDANT]
         ]
 
         summary = {
@@ -299,7 +311,7 @@ class WhyContextBenchmarkSuite:
 
             table.add_row(
                 result["case_name"],
-                result["context_quality"],
+                result["context_quality"].value,
                 "Yes" if result["should_enhance"] else "No",
                 "Yes" if result["was_enhanced"] else "No",
                 f"[{decision_color}]{decision_icon}[/{decision_color}]",

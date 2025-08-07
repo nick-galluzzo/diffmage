@@ -137,23 +137,8 @@ class EvaluationValidator:
             ),
             # GOOD cases (3.5-4.4)
             ValidationCase(
-                name="security_fix",
-                commit_message="fix: resolve critical SQL injection vulnerability in user authentication",
-                git_diff="""--- a/src/auth/UserAuth.py
-                +++ b/src/auth/UserAuth.py
-                @@ -23,7 +23,8 @@ class UserAuth:
-                    def authenticate_user(self, username, password):
-                -        query = f"SELECT * FROM users WHERE username='{username}' AND password='{password}'"
-                +        query = "SELECT * FROM users WHERE username=? AND password=?"
-                +        return self.db.execute(query, (username, password))
-                -        return self.db.execute(query)""",
-                expected_score_range=(3.5, 4.4),
-                expected_quality="good",
-                description="Clear security fix with good explanation",
-            ),
-            ValidationCase(
                 name="feature_with_context",
-                commit_message="feat: implement user password reset with email verification\n\nAdds secure password reset flow:\n- Generate time-limited reset tokens\n- Send verification emails\n- Validate tokens before allowing reset\n- Log security events for auditing",
+                commit_message="feat: implement user password reset with email verification\n\nAdds secure password reset flow:\n- Generate time-limited reset tokens for security\n- Send verification emails\n- Validate tokens before allowing reset\n- Log security events for auditing",
                 git_diff="""--- a/src/auth/PasswordReset.py
                 +++ b/src/auth/PasswordReset.py
                 @@ -0,0 +1,45 @@
@@ -183,6 +168,177 @@ class EvaluationValidator:
                 description="Comprehensive feature with detailed explanation",
             ),
             ValidationCase(
+                name="good_docs_update",
+                commit_message="docs: update installation instructions for new deployment process",
+                git_diff="""--- a/README.md
+                +++ b/README.md
+                @@ -15,8 +15,12 @@ A modern web application for managing user accounts.
+
+                ## Installation
+
+                -1. Clone the repository
+                -2. Run `npm install`
+                -3. Start with `npm start`
+                +1. Clone the repository: `git clone https://github.com/company/app.git`
+                +2. Install dependencies: `npm install`
+                +3. Copy environment file: `cp .env.example .env`
+                +4. Configure your database settings in `.env`
+                +5. Run database migrations: `npm run migrate`
+                +6. Start the application: `npm start`
+
+                ## Configuration
+                @@ -25,4 +29,8 @@ A modern web application for managing user accounts.
+
+                - `DATABASE_URL` - Your database connection string
+                - `JWT_SECRET` - Secret key for JWT tokens
+                +- `SMTP_HOST` - Email server host
+                +- `SMTP_PORT` - Email server port
+                +- `SMTP_USER` - Email username
+                +- `SMTP_PASS` - Email password""",
+                expected_score_range=(3.5, 4.4),
+                expected_quality="good",
+                description="Updates documentation. Doesn't explain why changes were needed, but this is an example of a low impact change that we don't penalize for. Excellent would be a more detailed explanation of the why.",
+            ),
+            ValidationCase(
+                name="good_feature_with_context",
+                commit_message="feat: add email verification for new user registrations\n\nNew users must verify their email address before accessing the platform. Sends verification email with time-limited token (24hr expiry) and blocks login until confirmed. Reduces fake accounts and improves email deliverability for notifications.",
+                git_diff="""--- a/src/controllers/AuthController.js
+                +++ b/src/controllers/AuthController.js
+                @@ -1,4 +1,5 @@
+                const User = require('../models/User');
+                +const EmailService = require('../services/EmailService');
+                const bcrypt = require('bcrypt');
+                +const crypto = require('crypto');
+
+                class AuthController {
+                async register(req, res) {
+                @@ -10,8 +11,18 @@ class AuthController {
+
+                    const user = await User.create({
+                    email: userData.email,
+                    password: hashedPassword,
+                -      isActive: true
+                +      isActive: false,
+                +      emailVerified: false,
+                +      verificationToken: crypto.randomBytes(32).toString('hex'),
+                +      verificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000)
+                    });
+                +
+                +    // Send verification email
+                +    await EmailService.sendVerificationEmail(
+                +      user.email,
+                +      user.verificationToken
+                +    );
+
+                -    res.json({ success: true, userId: user.id });
+                +    res.json({
+                +      success: true,
+                +      message: 'Please check your email to verify your account'
+                +    });
+                }
+                +
+                +  async verifyEmail(req, res) {
+                +    const { token } = req.params;
+                +
+                +    const user = await User.findOne({
+                +      verificationToken: token,
+                +      verificationExpires: { $gt: new Date() }
+                +    });
+                +
+                +    if (!user) {
+                +      return res.status(400).json({ error: 'Invalid or expired token' });
+                +    }
+                +
+                +    user.emailVerified = true;
+                +    user.isActive = true;
+                +    user.verificationToken = null;
+                +    user.verificationExpires = null;
+                +    await user.save();
+                +
+                +    res.json({ success: true, message: 'Email verified successfully' });
+                +  }
+
+                async login(req, res) {
+                    const user = await User.findOne({ email: req.body.email });
+                -
+                -    if (!user || !bcrypt.compareSync(req.body.password, user.password)) {
+                +
+                +    if (!user || !user.emailVerified || !bcrypt.compareSync(req.body.password, user.password)) {
+                    return res.status(401).json({ error: 'Invalid credentials' });
+                    }
+                +
+                +    if (!user.emailVerified) {
+                +      return res.status(401).json({ error: 'Please verify your email first' });
+                +    }
+                """,
+                expected_score_range=(3.5, 4.4),
+                expected_quality="good",
+                description="Feature with clear user benefit and implementation details",
+            ),
+            ValidationCase(
+                name="good_feature_basic",
+                commit_message="feat: add dark mode toggle to settings page\n\n- Add toggle switch component\n- Store preference in localStorage\n- Apply theme on page load",
+                git_diff="""--- a/src/pages/Settings.jsx
+                +++ b/src/pages/Settings.jsx
+                @@ -1,4 +1,5 @@
+                import React, { useState } from 'react';
+                +import ToggleSwitch from '../components/ToggleSwitch';
+
+                const Settings = () => {
+                const [notifications, setNotifications] = useState(true);
+                +  const [darkMode, setDarkMode] = useState(
+                +    localStorage.getItem('darkMode') === 'true'
+                +  );
+
+                +  const handleDarkModeToggle = (enabled) => {
+                +    setDarkMode(enabled);
+                +    localStorage.setItem('darkMode', enabled);
+                +    document.body.classList.toggle('dark-mode', enabled);
+                +  };
+
+                return (
+                    <div className="settings-page">
+                    <h1>Settings</h1>
+
+                    <div className="setting-item">
+                        <label>Enable Notifications</label>
+                        <ToggleSwitch
+                        checked={notifications}
+                        onChange={setNotifications}
+                        />
+                    </div>
+
+                +      <div className="setting-item">
+                +        <label>Dark Mode</label>
+                +        <ToggleSwitch
+                +          checked={darkMode}
+                +          onChange={handleDarkModeToggle}
+                +        />
+                +      </div>
+                    </div>
+                );
+                };""",
+                expected_score_range=(3.5, 4.4),
+                expected_quality="good",
+                description="Describes the changes but lacks some what context and lacks user motivation or business context",
+            ),
+            # AVERAGE cases (2.5-3.4)
+            ValidationCase(
+                name="security_fix",
+                commit_message="fix: resolve critical SQL injection vulnerability in user authentication",
+                git_diff="""--- a/src/auth/UserAuth.py
+                +++ b/src/auth/UserAuth.py
+                @@ -23,7 +23,8 @@ class UserAuth:
+                    def authenticate_user(self, username, password):
+                -        query = f"SELECT * FROM users WHERE username='{username}' AND password='{password}'"
+                +        query = "SELECT * FROM users WHERE username=? AND password=?"
+                +        return self.db.execute(query, (username, password))
+                -        return self.db.execute(query)""",
+                expected_score_range=(2.5, 3.4),
+                expected_quality="average",
+                description="Clear security fix with no technical explanation",
+            ),
+            ValidationCase(
                 name="simple_bug_fix",
                 commit_message="fix: handle null values in user profile display",
                 git_diff="""--- a/src/components/UserProfile.jsx
@@ -196,11 +352,10 @@ class EvaluationValidator:
                 +      <p>Bio: {user.bio || 'No bio available'}</p>
                     </div>
                 );""",
-                expected_score_range=(3.5, 4.4),
-                expected_quality="good",
+                expected_score_range=(2.5, 3.4),
+                expected_quality="average",
                 description="Clear bug fix, could use more detail",
             ),
-            # AVERAGE cases (2.5-3.4)
             ValidationCase(
                 name="average_refactor",
                 commit_message="refactor: move validation logic to separate service",
@@ -265,85 +420,6 @@ class EvaluationValidator:
                 expected_quality="average",
                 description="Fixes the issue but doesn't explain impact or root cause",
             ),
-            ValidationCase(
-                name="average_feature_basic",
-                commit_message="feat: add dark mode toggle to settings page\n\n- Add toggle switch component\n- Store preference in localStorage\n- Apply theme on page load",
-                git_diff="""--- a/src/pages/Settings.jsx
-        +++ b/src/pages/Settings.jsx
-        @@ -1,4 +1,5 @@
-        import React, { useState } from 'react';
-        +import ToggleSwitch from '../components/ToggleSwitch';
-
-        const Settings = () => {
-        const [notifications, setNotifications] = useState(true);
-        +  const [darkMode, setDarkMode] = useState(
-        +    localStorage.getItem('darkMode') === 'true'
-        +  );
-
-        +  const handleDarkModeToggle = (enabled) => {
-        +    setDarkMode(enabled);
-        +    localStorage.setItem('darkMode', enabled);
-        +    document.body.classList.toggle('dark-mode', enabled);
-        +  };
-
-        return (
-            <div className="settings-page">
-            <h1>Settings</h1>
-
-            <div className="setting-item">
-                <label>Enable Notifications</label>
-                <ToggleSwitch
-                checked={notifications}
-                onChange={setNotifications}
-                />
-            </div>
-
-        +      <div className="setting-item">
-        +        <label>Dark Mode</label>
-        +        <ToggleSwitch
-        +          checked={darkMode}
-        +          onChange={handleDarkModeToggle}
-        +        />
-        +      </div>
-            </div>
-        );
-        };""",
-                expected_score_range=(2.5, 3.4),
-                expected_quality="average",
-                description="Describes the feature clearly but lacks user motivation or business context",
-            ),
-            ValidationCase(
-                name="average_docs_update",
-                commit_message="docs: update installation instructions for new deployment process",
-                git_diff="""--- a/README.md
-        +++ b/README.md
-        @@ -15,8 +15,12 @@ A modern web application for managing user accounts.
-
-        ## Installation
-
-        -1. Clone the repository
-        -2. Run `npm install`
-        -3. Start with `npm start`
-        +1. Clone the repository: `git clone https://github.com/company/app.git`
-        +2. Install dependencies: `npm install`
-        +3. Copy environment file: `cp .env.example .env`
-        +4. Configure your database settings in `.env`
-        +5. Run database migrations: `npm run migrate`
-        +6. Start the application: `npm start`
-
-        ## Configuration
-        @@ -25,4 +29,8 @@ A modern web application for managing user accounts.
-
-        - `DATABASE_URL` - Your database connection string
-        - `JWT_SECRET` - Secret key for JWT tokens
-        +- `SMTP_HOST` - Email server host
-        +- `SMTP_PORT` - Email server port
-        +- `SMTP_USER` - Email username
-        +- `SMTP_PASS` - Email password""",
-                expected_score_range=(2.5, 3.4),
-                expected_quality="average",
-                description="Updates documentation but doesn't explain why changes were needed",
-            ),
             # POOR cases (1.5-2.4)
             ValidationCase(
                 name="generic_update",
@@ -361,32 +437,32 @@ class EvaluationValidator:
                 expected_quality="poor",
                 description="Vague message, minimal change",
             ),
+            # VERY POOR cases (1.0-1.4)
             ValidationCase(
                 name="meaningless_message",
                 commit_message="fix stuff",
                 git_diff="""--- a/src/utils/helper.js
-+++ b/src/utils/helper.js
-@@ -5,7 +5,7 @@ function processData(data) {
-   if (!data) {
-     return null;
-   }
--  return data.map(item => item.value);
-+  return data.map(item => item.value || 0);
- }""",
-                expected_score_range=(1.5, 2.4),
-                expected_quality="poor",
-                description="Meaningless commit message",
+                +++ b/src/utils/helper.js
+                @@ -5,7 +5,7 @@ function processData(data) {
+                if (!data) {
+                    return null;
+                }
+                -  return data.map(item => item.value);
+                +  return data.map(item => item.value || 0);
+                }""",
+                expected_score_range=(1.0, 1.4),
+                expected_quality="very_poor",
+                description="Meaningless commit message without any context",
             ),
-            # VERY POOR cases (1.0-1.4)
             ValidationCase(
                 name="gibberish",
                 commit_message="asdf jkl; qwerty",
                 git_diff="""--- a/src/test.js
-+++ b/src/test.js
-@@ -1,3 +1,4 @@
- // Test file
- console.log('hello');
-+console.log('world');""",
+                +++ b/src/test.js
+                @@ -1,3 +1,4 @@
+                // Test file
+                console.log('hello');
+                +console.log('world');""",
                 expected_score_range=(1.0, 1.4),
                 expected_quality="very_poor",
                 description="Nonsensical commit message",
@@ -864,6 +940,7 @@ class EvaluationValidator:
         table.add_column("Case", style="cyan")
         table.add_column("Expected", justify="center")
         table.add_column("Actual", justify="center")
+        table.add_column("What/Why", justify="center")
         table.add_column("Status", justify="center")
         table.add_column("Deviation", justify="center")
 
@@ -880,6 +957,7 @@ class EvaluationValidator:
                     r["case"].name,
                     expected_range,
                     actual_score,
+                    f"{r['result'].what_score:.1f}/{r['result'].why_score:.1f}",
                     f"[{status_color}]{status}[/{status_color}]",
                     deviation,
                 )

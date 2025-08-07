@@ -143,19 +143,25 @@ def get_evaluation_prompt(commit_message: str, git_diff: str) -> str:
 
     <EVALUATION_CRITERIA>
     - WHAT (1-5): How accurately and completely does the message describe the actual code changes?
-        * 5 = All high impactchanges captured accurately and completely with precise details.
+        * 5 = All high impact changes captured accurately and completely with precise details.
         * 4 = Main changes described accurately and clearly, only minor details missing
-        * 3 = Core changes described, some important details missing
+        * 3 = Core changes mentioned, some important details missing
         * 2 = Basic changes mentioned, significant gaps in description
-        * 1 = Major changes omitted, misrepresented, not described, or inaccurate.
+        * 1 = Major changes omitted, misrepresented, not described, or inaccurate. The message is completely non-descriptive and could apply to any commit. It provides zero insight into the change, location or substance. All changes are effectively omitted.
 
     - WHY (1-5): How clearly does it explain the PURPOSE/REASONING/IMPACT of the changes?
-        * 5 = Clear user problem + impact, intent, reasoning, context, background, implications explained.
-        * 4 = Good rationale with clear benefit/motivation
-        * 3 = Basic purpose explained, could be clearer, minimal impact context
-        * 2 = Minimal or technical-only reasoning, no user problem, impact, intent, reasoning, context, background, implications explained
-        * 1 = No explanation of purpose/impact beyond obvious technical changes
+        * 5 = Extremely clear user problem + impact, intent, reasoning, context, background, implications explained.
+        * 4 = Strong rationale with clear purpose/reasoning/impact/background/motivation.
+        * 3 = Basic purpose/reasoning/impact/background/motivation explained, could be more detailed.
+        * 2 = Minimal or technical-only reasoning, no user problem, impact, intent, reasoning, context, background, or implications explained
+        * 1 = No explanation of purpose/impact. The message is completely non-descriptive and could apply to any commit. It provides zero insight into the change, location or substance. All changes are effectively omitted.
     </EVALUATION_CRITERIA>
+
+    <WHY_CONTEXT_GUIDANCE>
+    - If the change is low impact (docs, refactoring, type safety, performance optimizations, tests, dependencies, configs), be lenient with the WHY score. Otherwise, adhere to the provided <EVALUATION_CRITERIA>.
+    - If the WHY can be inferred from the <ORIGINAL_COMMIT_MESSAGE>, brief benefit mentions are sufficient and leniency is allowed for the WHY score.
+    - DO NOT penalize the WHY score for not explaining obvious, low impact technical benefits in depth.
+    <WHY_CONTEXT_GUIDANCE>
 
     <EXAMPLES>
     Example 1:

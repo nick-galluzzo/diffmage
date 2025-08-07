@@ -39,8 +39,6 @@ class GenerationService:
         # handling why context in the intial generate_commit_message was adding too
         # much noise to the commit message generation.
         if why_context:
-            result: GenerationResult = self.generator.enhance_with_why_context(
-                result, why_context
-            )
+            return self.generator.enhance_with_why_context(result, why_context)
 
         return result
